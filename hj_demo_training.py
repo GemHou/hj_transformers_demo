@@ -1,6 +1,10 @@
 from datasets import load_dataset
 from transformers import AutoTokenizer
 from transformers import AutoModelForSequenceClassification
+from transformers import TrainingArguments
+import numpy as np
+import evaluate
+from transformers import Trainer
 
 
 def tokenize_function(examples):
@@ -21,6 +25,26 @@ def prepare_dataset():
 
 def main():
     small_train_dataset, small_eval_dataset = prepare_dataset()
+
+    model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=5)
+
+    training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch")
+
+    def compute_metrics(eval_pred):
+        logits, labels = eval_pred
+        predictions = np.argmax(logits, axis=-1)
+        metric = evaluate.load("accuracy")
+        return metric.compute(predictions=predictions, references=labels)
+
+    trainer = Trainer(
+        model=model,
+        args=training_args,
+        train_dataset=small_train_dataset,
+        eval_dataset=small_eval_dataset,
+        compute_metrics=compute_metrics,
+    )
+
+    trainer.train()
 
     print("finished...")
 
