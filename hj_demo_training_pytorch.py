@@ -37,8 +37,8 @@ def prepare_dataset():
     small_train_dataset = tokenized_datasets["train"].shuffle(seed=42).select(range(1000))
     small_eval_dataset = tokenized_datasets["test"].shuffle(seed=42).select(range(1000))
 
-    train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=7)
-    eval_dataloader = DataLoader(small_eval_dataset, batch_size=7)
+    train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=6)
+    eval_dataloader = DataLoader(small_eval_dataset, shuffle=True, batch_size=10)
 
     return small_train_dataset, small_eval_dataset, train_dataloader, eval_dataloader
 
@@ -68,7 +68,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
             optimizer.zero_grad()
             progress_bar.update(1)
 
-            if train_global_step % 10 ==0:
+            if train_global_step % 2 ==0:
 
                 model.eval()
                 # for batch in eval_dataloader:
@@ -80,7 +80,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                 # predictions = torch.argmax(logits, dim=-1)
 
                 test_loss = outputs.loss.item()
-                print("test_loss: ", test_loss)
+                # print("test_loss: ", test_loss)
 
                 writer.add_scalar('loss/test_loss', test_loss, train_global_step)
 
