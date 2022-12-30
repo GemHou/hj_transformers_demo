@@ -1,7 +1,6 @@
 from datasets import load_dataset
 import numpy as np
 import evaluate
-import matplotlib.pyplot as plt
 
 from transformers import AutoTokenizer
 from transformers import AutoModelForSequenceClassification
@@ -44,7 +43,7 @@ def prepare_dataset():
 
 
 def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
-               progress_bar, train_dataloader, train_loss_list, writer):
+               progress_bar, train_dataloader, eval_dataloader, writer, metric):
     global_step = 0
     for epoch in range(num_epochs):
         """"""
@@ -57,13 +56,8 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
 
             # print("loss: ", loss)
             train_loss = loss.item()
-            train_loss_list.append(train_loss)
-            # plt.subplot(2, 1, 1)
-            # plt.cla()
-            # plt.plot(train_loss_list)
-            # plt.pause(0.00000000000000001)
 
-            writer.add_scalar('train_loss', train_loss, global_step)
+            writer.add_scalar('loss/train_loss', train_loss, global_step)
 
             loss.backward()
 
@@ -71,7 +65,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
             lr_scheduler.step()
             optimizer.zero_grad()
             progress_bar.update(1)
-        """
+
         model.eval()
         for batch in eval_dataloader:
             batch = {k: v.to(device) for k, v in batch.items()}
@@ -80,16 +74,12 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
             logits = outputs.logits
             predictions = torch.argmax(logits, dim=-1)
 
-            plt.subplot(2, 1, 2)
-            plt.cla()
             test_loss = predictions.item()
-            test_loss_list.append(test_loss)
-            plt.plot(test_loss_list)
-            plt.pause(0.00000000000000001)
+
+            writer.add_scalar('loss/test_loss', test_loss, global_step)
 
             metric.add_batch(predictions=predictions, references=batch["labels"])
         metric.compute()
-        """
 
 
 def main():
@@ -106,17 +96,13 @@ def main():
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     print("device: ", device)
     model.to(device)
-    train_loss_list = []
-    test_loss_list = []
     progress_bar = tqdm(range(num_training_steps))
     metric = evaluate.load("accuracy")
 
     writer = SummaryWriter('./tensorboard')
 
     train_iter(device, lr_scheduler, model, num_epochs, optimizer,
-               progress_bar, train_dataloader, train_loss_list, writer)
-
-    plt.show()
+               progress_bar, train_dataloader, eval_dataloader, writer, metric)
 
     print("finished...")
 
