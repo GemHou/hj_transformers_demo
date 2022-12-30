@@ -1,6 +1,7 @@
 from datasets import load_dataset
 import numpy as np
 import evaluate
+import time
 
 from transformers import AutoTokenizer
 from transformers import AutoModelForSequenceClassification
@@ -37,19 +38,20 @@ def prepare_dataset():
     small_eval_dataset = tokenized_datasets["test"].shuffle(seed=42).select(range(1000))
 
     train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=7)
-    eval_dataloader = DataLoader(small_eval_dataset, batch_size=1)
+    eval_dataloader = DataLoader(small_eval_dataset, batch_size=7)
 
     return small_train_dataset, small_eval_dataset, train_dataloader, eval_dataloader
 
 
 def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                progress_bar, train_dataloader, eval_dataloader, writer, metric):
-    global_step = 0
+    train_global_step = 0
+    test_global_step = 0
     for epoch in range(num_epochs):
         """"""
         model.train()
         for batch in train_dataloader:
-            global_step += 1
+            train_global_step += 1
             batch = {k: v.to(device) for k, v in batch.items()}
             outputs = model(**batch)
             loss = outputs.loss
@@ -57,7 +59,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
             # print("loss: ", loss)
             train_loss = loss.item()
 
-            writer.add_scalar('loss/train_loss', train_loss, global_step)
+            writer.add_scalar('loss/train_loss', train_loss, train_global_step)
 
             loss.backward()
 
@@ -68,18 +70,48 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
 
         model.eval()
         for batch in eval_dataloader:
+            test_global_step += 1
             batch = {k: v.to(device) for k, v in batch.items()}
             with torch.no_grad():
                 outputs = model(**batch)
             logits = outputs.logits
             predictions = torch.argmax(logits, dim=-1)
 
-            test_loss = predictions.item()
+            test_loss = outputs.loss.item()
+            print("test_loss: ", test_loss)
 
-            writer.add_scalar('loss/test_loss', test_loss, global_step)
+            writer.add_scalar('loss/test_loss', test_loss, test_global_step)
 
             metric.add_batch(predictions=predictions, references=batch["labels"])
         metric.compute()
+        """"""
+
+
+def get_time_str():
+    local_time = time.localtime(time.time())
+    # date_str = str(local_time[0]) + str(local_time[1]) + str(local_time[2])
+    date_str1 = str(local_time[0])
+    if len(date_str1) == 1:
+        date_str1 = "0" + date_str1
+    date_str2 = str(local_time[1])
+    if len(date_str2) == 1:
+        date_str2 = "0" + date_str2
+    date_str3 = str(local_time[2])
+    if len(date_str3) == 1:
+        date_str3 = "0" + date_str3
+    date_str = date_str1 + date_str2 + date_str3
+
+    time_str1 = str(local_time[3])
+    if len(time_str1) == 1:
+        time_str1 = "0" + time_str1
+    time_str2 = str(local_time[4])
+    if len(time_str2) == 1:
+        time_str2 = "0" + time_str2
+    time_str3 = str(local_time[5])
+    if len(time_str3) == 1:
+        time_str3 = "0" + time_str3
+    time_str = time_str1 + time_str2 + time_str3
+    return date_str, time_str
 
 
 def main():
@@ -99,7 +131,8 @@ def main():
     progress_bar = tqdm(range(num_training_steps))
     metric = evaluate.load("accuracy")
 
-    writer = SummaryWriter('./tensorboard')
+    date_str, time_str = get_time_str()
+    writer = SummaryWriter('./tensorboard/' + date_str + "_" + time_str)
 
     train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                progress_bar, train_dataloader, eval_dataloader, writer, metric)
