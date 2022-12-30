@@ -15,7 +15,7 @@ def tokenize_function(examples):
 
 def prepare_dataset():
     dataset = load_dataset("yelp_review_full")
-    print('dataset[train][100]: ', dataset["train"][100])
+    # print('dataset[train][100]: ', dataset["train"][100])
 
     tokenized_datasets = dataset.map(tokenize_function, batched=True)
     small_train_dataset = tokenized_datasets["train"].shuffle(seed=42).select(range(1000))
@@ -28,7 +28,7 @@ def main():
 
     model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=5)
 
-    training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch")
+    training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch", auto_find_batch_size=1)
 
     def compute_metrics(eval_pred):
         logits, labels = eval_pred
