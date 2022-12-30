@@ -46,10 +46,10 @@ def prepare_dataset():
 def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                progress_bar, train_dataloader, eval_dataloader, writer, metric):
     train_global_step = 0
-    test_global_step = 0
+    # test_global_step = 0
+    model.train()
     for epoch in range(num_epochs):
         """"""
-        model.train()
         for batch in train_dataloader:
             train_global_step += 1
             batch = {k: v.to(device) for k, v in batch.items()}
@@ -68,23 +68,26 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
             optimizer.zero_grad()
             progress_bar.update(1)
 
-        model.eval()
-        for batch in eval_dataloader:
-            test_global_step += 1
-            batch = {k: v.to(device) for k, v in batch.items()}
-            with torch.no_grad():
-                outputs = model(**batch)
-            logits = outputs.logits
-            predictions = torch.argmax(logits, dim=-1)
+            if train_global_step % 10 ==0:
 
-            test_loss = outputs.loss.item()
-            print("test_loss: ", test_loss)
+                model.eval()
+                # for batch in eval_dataloader:
+                batch = next(iter(eval_dataloader))
+                batch = {k: v.to(device) for k, v in batch.items()}
+                with torch.no_grad():
+                    outputs = model(**batch)
+                # logits = outputs.logits
+                # predictions = torch.argmax(logits, dim=-1)
 
-            writer.add_scalar('loss/test_loss', test_loss, test_global_step)
+                test_loss = outputs.loss.item()
+                print("test_loss: ", test_loss)
 
-            metric.add_batch(predictions=predictions, references=batch["labels"])
-        metric.compute()
-        """"""
+                writer.add_scalar('loss/test_loss', test_loss, train_global_step)
+
+                    # metric.add_batch(predictions=predictions, references=batch["labels"])
+                # metric.compute()
+                model.train()
+            """"""
 
 
 def get_time_str():
