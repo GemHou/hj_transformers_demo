@@ -76,16 +76,17 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                 batch = {k: v.to(device) for k, v in batch.items()}
                 with torch.no_grad():
                     outputs = model(**batch)
-                # logits = outputs.logits
-                # predictions = torch.argmax(logits, dim=-1)
-
                 test_loss = outputs.loss.item()
-                # print("test_loss: ", test_loss)
-
                 writer.add_scalar('loss/test_loss', test_loss, train_global_step)
 
-                    # metric.add_batch(predictions=predictions, references=batch["labels"])
-                # metric.compute()
+                logits = outputs.logits
+                predictions = torch.argmax(logits, dim=-1)
+                metric.add_batch(predictions=predictions, references=batch["labels"])
+                metric_value = metric.compute()
+                accuracy = metric_value['accuracy']
+                # print("accuracy: ", accuracy)
+                writer.add_scalar('accuracy', accuracy, train_global_step)
+
                 model.train()
             """"""
 
@@ -124,7 +125,7 @@ def main():
 
     optimizer = AdamW(model.parameters(), lr=5e-5)
 
-    num_epochs = 10
+    num_epochs = 1
     num_training_steps = num_epochs * len(train_dataloader)
     lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0,
                                  num_training_steps=num_training_steps)
