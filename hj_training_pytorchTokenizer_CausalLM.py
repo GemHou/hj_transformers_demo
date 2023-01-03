@@ -17,31 +17,6 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 
 
-def prepare_dataset(model_name):  # todo: suitable dataset
-    dataset = load_dataset("yelp_review_full")
-
-    def tokenize_function(examples):
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        return tokenizer(examples["text"], padding="max_length", truncation=True)
-
-    # tokenized_datasets = dataset.map(tokenize_function, batched=True)
-    tokenized_datasets = dataset
-
-    tokenized_datasets = tokenized_datasets.remove_columns(["text"])
-
-    tokenized_datasets = tokenized_datasets.rename_column("label", "labels")
-
-    tokenized_datasets.set_format("torch")
-
-    small_train_dataset = tokenized_datasets["train"].shuffle(seed=42)  # .select(range(1000))
-    small_eval_dataset = tokenized_datasets["test"].shuffle(seed=42)  # .select(range(1000))
-
-    train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=6)
-    eval_dataloader = DataLoader(small_eval_dataset, shuffle=True, batch_size=10)
-
-    return small_train_dataset, small_eval_dataset, train_dataloader, eval_dataloader
-
-
 def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                progress_bar, train_dataloader, eval_dataloader, writer, metric):
     train_global_step = 0
@@ -51,7 +26,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
         """"""
         for batch in train_dataloader:
             train_global_step += 1
-            batch = {k: v.to(device) for k, v in batch.items()}
+            # batch = {k: v.to(device) for k, v in batch.items()}
             outputs = model(**batch)
             loss = outputs.loss
 
@@ -120,14 +95,18 @@ def get_time_str():
 def main():
     model_name = "xlnet-base-cased"  # "bert-base-cased"
 
-    small_train_dataset, small_eval_dataset, train_dataloader, eval_dataloader = prepare_dataset(model_name=model_name)
+    # small_train_dataset, small_eval_dataset, train_dataloader, eval_dataloader = prepare_dataset(model_name=model_name)
+    dataset_wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner')
+    dataset_wikipedia.set_format("torch")
+    dataset_wikipedia = dataset_wikipedia["train"].shuffle(seed=42)  # .select(range(1000))
+    dataloader_wikipedia = DataLoader(dataset_wikipedia, shuffle=True, batch_size=6)
 
     model = AutoModelForCausalLM.from_pretrained(model_name, num_labels=5)
 
     optimizer = AdamW(model.parameters(), lr=5e-5)
 
     num_epochs = 1
-    num_training_steps = num_epochs * len(train_dataloader)
+    num_training_steps = num_epochs * len(dataloader_wikipedia)
     lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0,
                                  num_training_steps=num_training_steps)
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
@@ -140,7 +119,7 @@ def main():
     writer = SummaryWriter('./tensorboard/' + date_str + "_" + time_str)
 
     train_iter(device, lr_scheduler, model, num_epochs, optimizer,
-               progress_bar, train_dataloader, eval_dataloader, writer, metric)
+               progress_bar, dataloader_wikipedia, dataloader_wikipedia, writer, metric)
 
     print("finished...")
 

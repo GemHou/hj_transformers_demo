@@ -40,6 +40,9 @@ def prepare_dataset():
     dataset_wikipedia = dataset_wikipedia["train"].shuffle(seed=42)  # .select(range(1000))
     dataloader_wikipedia  = DataLoader(dataset_wikipedia, shuffle=True, batch_size=6)
 
+    # bookcorpus
+    dataset_bookcorpus = load_dataset("bookcorpus")
+
     return [dataset_yelp_train, dataset_yelp_test, dataloader_yelp_train, dataloader_yelp_eval], \
            [dataset_wikipedia, dataloader_wikipedia]
 

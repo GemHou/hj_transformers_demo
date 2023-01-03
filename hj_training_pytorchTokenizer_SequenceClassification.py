@@ -37,7 +37,7 @@ def prepare_dataset():
     small_train_dataset = tokenized_datasets["train"].shuffle(seed=42)  # .select(range(1000))
     small_eval_dataset = tokenized_datasets["test"].shuffle(seed=42)  # .select(range(1000))
 
-    train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=6)
+    train_dataloader = DataLoader(small_train_dataset, shuffle=True, batch_size=5)
     eval_dataloader = DataLoader(small_eval_dataset, shuffle=True, batch_size=10)
 
     return small_train_dataset, small_eval_dataset, train_dataloader, eval_dataloader
