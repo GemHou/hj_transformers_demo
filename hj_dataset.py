@@ -1,19 +1,6 @@
 from datasets import load_dataset
-import numpy as np
-import evaluate
-import time
-
 from transformers import AutoTokenizer
-from transformers import AutoModelForSequenceClassification
-from transformers import TrainingArguments
-from transformers import Trainer
-from transformers import get_scheduler
-
-import torch
 from torch.utils.data import DataLoader
-from torch.optim import AdamW
-from torch.utils.tensorboard import SummaryWriter
-from tqdm.auto import tqdm
 
 
 def tokenize_function(examples):
