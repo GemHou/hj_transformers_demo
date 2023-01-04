@@ -16,6 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 
 block_size = 128
+BATCH_SIZE_LIST = [4096]
 
 
 def tokenize_function(examples):
@@ -36,8 +37,8 @@ def group_texts(examples):
     return results
 
 
-def prepare_dataset():
-    eli5 = load_dataset("eli5", split="train_asks[:1000]")
+def prepare_dataset(batch_size):
+    eli5 = load_dataset("eli5", split="train_asks[:5000]")  # 50000 1000
     eli5 = eli5.train_test_split(test_size=0.2)
     print("eli5[train][0]: ", eli5["train"][0])
     eli5 = eli5.flatten()
@@ -52,8 +53,8 @@ def prepare_dataset():
 
     lm_dataset.set_format("torch")
 
-    train_dataloader = DataLoader(lm_dataset["train"], shuffle=True, batch_size=5)
-    eval_dataloader = DataLoader(lm_dataset["test"], shuffle=True, batch_size=10)
+    train_dataloader = DataLoader(lm_dataset["train"], shuffle=True, batch_size=batch_size)
+    eval_dataloader = DataLoader(lm_dataset["test"], shuffle=True, batch_size=batch_size)
 
     batch = next(iter(train_dataloader))
 
@@ -61,13 +62,14 @@ def prepare_dataset():
 
 
 def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
-               progress_bar, train_dataloader, eval_dataloader, writer, metric):
+               progress_bar, train_dataloader, eval_dataloader, writer, metric, batch_size):
     train_global_step = 0
-    # test_global_step = 0
     model.train()
     for epoch in range(num_epochs):
         """"""
         for batch in train_dataloader:
+            start_time = time.time()
+
             train_global_step += 1
             batch = {k: v.to(device) for k, v in batch.items()}
             outputs = model(**batch)
@@ -85,7 +87,9 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
             optimizer.zero_grad()
             progress_bar.update(1)
 
-            """
+            batch_time = time.time() - start_time
+
+            """"""
 
             if train_global_step % 2 == 0:
 
@@ -98,6 +102,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                 test_loss = outputs.loss.item()
                 writer.add_scalar('loss/test_loss', test_loss, train_global_step)
 
+                """
                 logits = outputs.logits
                 predictions = torch.argmax(logits, dim=-1)
                 metric.add_batch(predictions=predictions, references=batch["labels"])
@@ -105,9 +110,13 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                 accuracy = metric_value['accuracy']
                 # print("accuracy: ", accuracy)
                 writer.add_scalar('accuracy', accuracy, train_global_step)
+                """
 
                 model.train()
-            """
+
+                writer.add_scalar('others/batch_size', batch_size, train_global_step)
+                writer.add_scalar('others/batch_time', batch_time, train_global_step)
+
             """"""
 
 
@@ -139,29 +148,30 @@ def get_time_str():
 
 
 def main():
-    lm_dataset, train_dataloader, eval_dataloader = prepare_dataset()
+    for batch_size in BATCH_SIZE_LIST:
+        lm_dataset, train_dataloader, eval_dataloader = prepare_dataset(batch_size)
 
-    model = AutoModelForCausalLM.from_pretrained("distilgpt2")  # bert-base-cased
+        model = AutoModelForCausalLM.from_pretrained("distilgpt2")  # bert-base-cased
 
-    optimizer = AdamW(model.parameters(), lr=2e-5)
+        optimizer = AdamW(model.parameters(), lr=2e-5)
 
-    num_epochs = 1
-    num_training_steps = num_epochs * len(lm_dataset["train"])
-    lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0,
-                                 num_training_steps=num_training_steps)
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    print("device: ", device)
-    model.to(device)
-    progress_bar = tqdm(range(num_training_steps))
-    metric = evaluate.load("accuracy")
+        num_epochs = 1
+        num_training_steps = num_epochs * len(train_dataloader)  # lm_dataset["train"]
+        lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0,
+                                     num_training_steps=num_training_steps)
+        device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        print("device: ", device)
+        model.to(device)
+        progress_bar = tqdm(range(num_training_steps))
+        metric = evaluate.load("accuracy")
 
-    date_str, time_str = get_time_str()
-    writer = SummaryWriter('./tensorboard/' + date_str + "_" + time_str)
+        date_str, time_str = get_time_str()
+        writer = SummaryWriter('./tensorboard/' + date_str + "_" + time_str)
 
-    train_iter(device, lr_scheduler, model, num_epochs, optimizer,
-               progress_bar, train_dataloader, eval_dataloader, writer, metric)
+        train_iter(device, lr_scheduler, model, num_epochs, optimizer,
+                   progress_bar, train_dataloader, eval_dataloader, writer, metric, batch_size)
 
-    print("finished...")
+        print("finished...")
 
 
 if __name__ == '__main__':
