@@ -37,7 +37,10 @@ def prepare_dataset():
 def main():
     small_train_dataset, small_eval_dataset = prepare_dataset()
 
-    model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=5)
+    id2label = {0: "NEGATIVE", 1: "POSITIVE"}
+    label2id = {"NEGATIVE": 0, "POSITIVE": 1}
+    model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2,
+                                                               id2label=id2label, label2id=label2id)
 
     training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch", auto_find_batch_size=1)
 
