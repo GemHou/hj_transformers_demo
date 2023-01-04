@@ -6,6 +6,7 @@ from transformers import AutoTokenizer
 from transformers import AutoModelForSequenceClassification
 from transformers import TrainingArguments
 from transformers import Trainer
+from transformers import DataCollatorWithPadding
 
 import evaluate
 
@@ -43,8 +44,12 @@ def main():
     def compute_metrics(eval_pred):
         logits, labels = eval_pred
         predictions = np.argmax(logits, axis=-1)
-        metric = evaluate.load("accuracy")
-        return metric.compute(predictions=predictions, references=labels)
+        metric_accuracy = evaluate.load("accuracy")
+        return metric_accuracy.compute(predictions=predictions, references=labels)
+
+    model_name = "bert-base-cased"  # bert-base-cased
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
 
     trainer = Trainer(
         model=model,
@@ -52,6 +57,7 @@ def main():
         train_dataset=small_train_dataset,
         eval_dataset=small_eval_dataset,
         compute_metrics=compute_metrics,
+        data_collator=data_collator
     )
 
     trainer.train()
