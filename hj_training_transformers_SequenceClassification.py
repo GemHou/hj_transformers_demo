@@ -14,12 +14,19 @@ def tokenize_function(examples):
 
 
 def prepare_dataset():
-    dataset = load_dataset("yelp_review_full")
-    # print('dataset[train][100]: ', dataset["train"][100])
+    dataset = load_dataset("imdb")  # yelp_review_full imdb
+    print('dataset[test][0]: ', dataset["test"][0])
+
+    dataset["train"] = dataset["train"].select(range(1000))
+    dataset["test"] = dataset["test"].select(range(1000))
 
     tokenized_datasets = dataset.map(tokenize_function, batched=True)
     small_train_dataset = tokenized_datasets["train"].shuffle(seed=42).select(range(1000))
     small_eval_dataset = tokenized_datasets["test"].shuffle(seed=42).select(range(1000))
+
+    # dataset2 = load_dataset("imdb")
+    # dataset2["train"] = dataset2["train"].select(range(1000))
+    # print("dataset2[test][0]", dataset2["test"][0])
     return small_train_dataset, small_eval_dataset
 
 
