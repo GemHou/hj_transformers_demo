@@ -68,7 +68,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
             optimizer.zero_grad()
             progress_bar.update(1)
 
-            if train_global_step % 2 ==0:
+            if train_global_step % 2 == 0:
 
                 model.eval()
                 # for batch in eval_dataloader:

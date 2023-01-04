@@ -23,17 +23,6 @@ def tokenize_function(examples):
 
 
 def prepare_dataset():
-    """
-    dataset = load_dataset("imdb")  # yelp_review_full imdb
-    print('dataset[test][0]: ', dataset["test"][0])
-
-    dataset["train"] = dataset["train"].select(range(1000))
-    dataset["test"] = dataset["test"].select(range(1000))
-
-    tokenized_datasets = dataset.map(tokenize_function, batched=True)
-    small_train_dataset = tokenized_datasets["train"].shuffle(seed=42).select(range(1000))
-    small_eval_dataset = tokenized_datasets["test"].shuffle(seed=42).select(range(1000))
-    """
     eli5 = load_dataset("eli5", split="train_asks[:1000]")
     eli5 = eli5.train_test_split(test_size=0.2)
     print("eli5[train][0]: ", eli5["train"][0])
@@ -45,7 +34,9 @@ def prepare_dataset():
                               num_proc=4,
                               remove_columns=eli5["train"].column_names)
 
-    return tokenized_eli5
+    lm_dataset = tokenized_eli5.map(group_texts, batched=True, num_proc=4)
+
+    return lm_dataset
 
 
 def group_texts(examples):
@@ -60,8 +51,7 @@ def group_texts(examples):
 
 
 def main():
-    tokenized_eli5 = prepare_dataset()
-    lm_dataset = tokenized_eli5.map(group_texts, batched=True, num_proc=4)
+    lm_dataset = prepare_dataset()
 
     print("lm_dataset[train][0]: ", lm_dataset["train"][0])
     batch = lm_dataset["train"][0]
@@ -80,14 +70,6 @@ def main():
                                       # per_device_train_batch_size=1
                                       # auto_find_batch_size=1
                                       )
-
-    """
-    def compute_metrics(eval_pred):
-        logits, labels = eval_pred
-        predictions = np.argmax(logits, axis=-1)
-        metric_accuracy = evaluate.load("accuracy")
-        return metric_accuracy.compute(predictions=predictions, references=labels)
-    """
 
     trainer = Trainer(
         model=model,
