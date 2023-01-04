@@ -92,8 +92,14 @@ def get_time_str():
     return date_str, time_str
 
 
-def tokenize_function(examples):
+def tokenize_function_bert(examples):
     model_name = "bert-base-cased"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    return tokenizer(examples["text"], padding="max_length", truncation=True)
+
+
+def tokenize_function_xlnet(examples):
+    model_name = "xlnet-base-cased"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     return tokenizer(examples["text"], padding="max_length", truncation=True)
 
@@ -104,7 +110,7 @@ def main():
     # small_train_dataset, small_eval_dataset, train_dataloader, eval_dataloader = prepare_dataset(model_name=model_name)
     dataset_wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner')
     dataset_wikipedia["train"] = dataset_wikipedia["train"].select(range(1000))
-    dataset_tokenized_wikipedia = dataset_wikipedia.map(tokenize_function, batched=True)
+    dataset_tokenized_wikipedia = dataset_wikipedia.map(tokenize_function_xlnet, batched=True)
 
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["id"])
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["url"])
@@ -113,7 +119,7 @@ def main():
 
     dataset_tokenized_wikipedia.set_format("torch")
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia["train"].shuffle(seed=42)  # .select(range(1000))
-    dataloader_wikipedia = DataLoader(dataset_tokenized_wikipedia, shuffle=True, batch_size=6)
+    dataloader_wikipedia = DataLoader(dataset_tokenized_wikipedia, shuffle=True, batch_size=1)
 
     model = AutoModelForCausalLM.from_pretrained(model_name, num_labels=5)
 
