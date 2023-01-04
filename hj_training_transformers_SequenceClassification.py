@@ -1,14 +1,17 @@
+import numpy as np
+
 from datasets import load_dataset
+
 from transformers import AutoTokenizer
 from transformers import AutoModelForSequenceClassification
 from transformers import TrainingArguments
-import numpy as np
-import evaluate
 from transformers import Trainer
+
+import evaluate
 
 
 def tokenize_function(examples):
-    model_name = "bert-base-cased"
+    model_name = "bert-base-cased"  # bert-base-cased
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     return tokenizer(examples["text"], padding="max_length", truncation=True)
 
