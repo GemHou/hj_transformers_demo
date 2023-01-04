@@ -4,8 +4,14 @@ import torch
 from torch.utils.data import DataLoader
 
 
-def tokenize_function(examples):
+def tokenize_function_bert(examples):
     model_name = "bert-base-cased"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    return tokenizer(examples["text"], padding="max_length", truncation=True)
+
+
+def tokenize_function_xlnet(examples):
+    model_name = "xlnet-base-cased"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     return tokenizer(examples["text"], padding="max_length", truncation=True)
 
@@ -15,9 +21,9 @@ def prepare_dataset():
     dataset_yelp = load_dataset("yelp_review_full")
     dataset_yelp["train"] = dataset_yelp["train"].select(range(1000))
     dataset_yelp["test"] = dataset_yelp["test"].select(range(1000))
-    dataset_tokenized_yelp = dataset_yelp.map(tokenize_function, batched=True)
+    dataset_tokenized_yelp = dataset_yelp.map(tokenize_function_bert, batched=True)
     dataset_tokenized_yelp = dataset_tokenized_yelp.remove_columns(["text"])
-    dataset_tokenized_yelp = dataset_tokenized_yelp.rename_column("label", "labels")
+    dataset_tokenized_yelp = dataset_tokenized_yelp.rename_column("label", "labels")  # important!!!!!!!!!!!!!!!!!!!!!!
     dataset_tokenized_yelp.set_format("torch")
     dataset_tokenized_yelp_train = dataset_tokenized_yelp["train"].shuffle(seed=42)  # .select(range(1000))
     dataset_tokenized_yelp_test = dataset_tokenized_yelp["test"].shuffle(seed=42)  # .select(range(1000))
@@ -27,14 +33,14 @@ def prepare_dataset():
     # wikipedia
     dataset_wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner')
     dataset_wikipedia["train"] = dataset_wikipedia["train"].select(range(1000))
-    dataset_tokenized_wikipedia = dataset_wikipedia.map(tokenize_function, batched=True)
+    dataset_tokenized_wikipedia = dataset_wikipedia.map(tokenize_function_xlnet, batched=True)
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["id"])
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["url"])
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["title"])
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["text"])
     dataset_tokenized_wikipedia.set_format("torch")
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia["train"].shuffle(seed=42)  # .select(range(1000))
-    dataloader_wikipedia  = DataLoader(dataset_tokenized_wikipedia, shuffle=True, batch_size=6)
+    dataloader_wikipedia = DataLoader(dataset_tokenized_wikipedia, shuffle=True, batch_size=1)
 
     # bookcorpus
     # dataset_bookcorpus = load_dataset("bookcorpus")
