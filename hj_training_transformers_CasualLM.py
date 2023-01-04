@@ -3,10 +3,12 @@ import numpy as np
 from datasets import load_dataset
 
 from transformers import AutoTokenizer
-from transformers import AutoModelForSequenceClassification
+# from transformers import AutoModelForSequenceClassification
+from transformers import AutoModelForCausalLM
 from transformers import TrainingArguments
 from transformers import Trainer
-from transformers import DataCollatorWithPadding
+# from transformers import DataCollatorWithPadding
+from transformers import DataCollatorForLanguageModeling
 
 import evaluate
 
@@ -64,31 +66,35 @@ def main():
     print("lm_dataset[train][0]: ", lm_dataset["train"][0])
     batch = lm_dataset["train"][0]
 
+    model_name = "distilgpt2"  # bert-base-cased distilgpt2 distilroberta-base
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer.pad_token = tokenizer.eos_token
+    data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
+    model = AutoModelForCausalLM.from_pretrained("distilgpt2")  # bert-base-cased
 
-    id2label = {0: "NEGATIVE", 1: "POSITIVE"}
-    label2id = {"NEGATIVE": 0, "POSITIVE": 1}
-    model = AutoModelForSequenceClassification.from_pretrained("bert-base-cased", num_labels=2,
-                                                               id2label=id2label, label2id=label2id)
+    training_args = TrainingArguments(output_dir="my_awesome_eli5_clm-model",
+                                      evaluation_strategy="epoch",
+                                      learning_rate=2e-5,
+                                      weight_decay=0.01,
+                                      # per_device_train_batch_size=1
+                                      # auto_find_batch_size=1
+                                      )
 
-    training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch", auto_find_batch_size=1)
-
+    """
     def compute_metrics(eval_pred):
         logits, labels = eval_pred
         predictions = np.argmax(logits, axis=-1)
         metric_accuracy = evaluate.load("accuracy")
         return metric_accuracy.compute(predictions=predictions, references=labels)
-
-    model_name = "bert-base-cased"  # bert-base-cased
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    data_collator = DataCollatorWithPadding(tokenizer=tokenizer)
+    """
 
     trainer = Trainer(
         model=model,
         args=training_args,
-        train_dataset=small_train_dataset,
-        eval_dataset=small_eval_dataset,
-        compute_metrics=compute_metrics,
+        train_dataset=lm_dataset["train"],
+        eval_dataset=lm_dataset["test"],
+        # compute_metrics=compute_metrics,
         data_collator=data_collator
     )
 
