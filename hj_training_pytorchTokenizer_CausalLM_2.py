@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 
 block_size = 128
-BATCH_SIZE_LIST = [4096]
+BATCH_SIZE_LIST = [4]
 
 
 def tokenize_function(examples):
@@ -38,7 +38,7 @@ def group_texts(examples):
 
 
 def prepare_dataset(batch_size):
-    eli5 = load_dataset("eli5", split="train_asks[:5000]")  # 50000 1000
+    eli5 = load_dataset("eli5", split="train_asks[:]")  # 50000 1000
     eli5 = eli5.train_test_split(test_size=0.2)
     print("eli5[train][0]: ", eli5["train"][0])
     eli5 = eli5.flatten()
