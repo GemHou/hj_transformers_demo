@@ -1,5 +1,6 @@
 from datasets import load_dataset
 from transformers import AutoTokenizer
+import torch
 from torch.utils.data import DataLoader
 
 
@@ -27,6 +28,10 @@ def prepare_dataset():
     dataset_wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner')
     dataset_wikipedia["train"] = dataset_wikipedia["train"].select(range(1000))
     dataset_tokenized_wikipedia = dataset_wikipedia.map(tokenize_function, batched=True)
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["id"])
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["url"])
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["title"])
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["text"])
     dataset_tokenized_wikipedia.set_format("torch")
     dataset_tokenized_wikipedia = dataset_tokenized_wikipedia["train"].shuffle(seed=42)  # .select(range(1000))
     dataloader_wikipedia  = DataLoader(dataset_tokenized_wikipedia, shuffle=True, batch_size=6)
@@ -42,8 +47,12 @@ def main():
     [dataloader_yelp_train, dataloader_yelp_eval], \
         [dataloader_wikipedia] = prepare_dataset()
 
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
     batch_yelp_train = next(iter(dataloader_yelp_train))
+    batch_yelp_train = {k: v.to(device) for k, v in batch_yelp_train.items()}
     batch_wikipedia = next(iter(dataloader_wikipedia))
+    batch_wikipedia = {k: v.to(device) for k, v in batch_wikipedia.items()}
 
     print("finish")
 

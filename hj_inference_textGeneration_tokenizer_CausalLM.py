@@ -49,9 +49,11 @@ def main():
 
     # outputs = model(**inputs)
     outputs = model.generate(inputs, max_length=250, do_sample=True, top_p=0.95, top_k=60)
+    outputs = outputs[0]
+    outputs = tokenizer.decode(outputs)
     # outputs = model(inputs, max_length=250, do_sample=True, top_p=0.95, top_k=60)
 
-    generated = prompt + tokenizer.decode(outputs[0])[prompt_length + 1:]
+    generated = prompt + outputs[prompt_length + 1:]
 
     print("generated: ", generated)
 

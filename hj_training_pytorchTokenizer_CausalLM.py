@@ -26,7 +26,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
         """"""
         for batch in train_dataloader:
             train_global_step += 1
-            # batch = {k: v.to(device) for k, v in batch.items()}
+            batch = {k: v.to(device) for k, v in batch.items()}
             outputs = model(**batch)
             loss = outputs.loss
 
@@ -92,14 +92,28 @@ def get_time_str():
     return date_str, time_str
 
 
+def tokenize_function(examples):
+    model_name = "bert-base-cased"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    return tokenizer(examples["text"], padding="max_length", truncation=True)
+
+
 def main():
     model_name = "xlnet-base-cased"  # "bert-base-cased"
 
     # small_train_dataset, small_eval_dataset, train_dataloader, eval_dataloader = prepare_dataset(model_name=model_name)
     dataset_wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner')
-    dataset_wikipedia.set_format("torch")
-    dataset_wikipedia = dataset_wikipedia["train"].shuffle(seed=42)  # .select(range(1000))
-    dataloader_wikipedia = DataLoader(dataset_wikipedia, shuffle=True, batch_size=6)
+    dataset_wikipedia["train"] = dataset_wikipedia["train"].select(range(1000))
+    dataset_tokenized_wikipedia = dataset_wikipedia.map(tokenize_function, batched=True)
+
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["id"])
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["url"])
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["title"])
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia.remove_columns(["text"])
+
+    dataset_tokenized_wikipedia.set_format("torch")
+    dataset_tokenized_wikipedia = dataset_tokenized_wikipedia["train"].shuffle(seed=42)  # .select(range(1000))
+    dataloader_wikipedia = DataLoader(dataset_tokenized_wikipedia, shuffle=True, batch_size=6)
 
     model = AutoModelForCausalLM.from_pretrained(model_name, num_labels=5)
 
