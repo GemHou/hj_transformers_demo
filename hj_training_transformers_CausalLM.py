@@ -22,6 +22,17 @@ def tokenize_function(examples):
     return tokenizer([" ".join(x) for x in examples["answers.text"]], truncation=True)  # , padding="max_length"
 
 
+def group_texts(examples):
+    concatenated_examples = {k: sum(examples[k], []) for k in examples.keys()}
+    total_length = len(concatenated_examples[list(examples.keys())[0]])
+    total_length = (total_length // block_size) * block_size
+    results = {
+        k: [t[i : i + block_size] for i in range(0, total_length, block_size)] for k, t in concatenated_examples.items()
+    }
+    results["labels"] = results["input_ids"].copy()
+    return results
+
+
 def prepare_dataset():
     eli5 = load_dataset("eli5", split="train_asks[:1000]")
     eli5 = eli5.train_test_split(test_size=0.2)
@@ -39,22 +50,11 @@ def prepare_dataset():
     return lm_dataset
 
 
-def group_texts(examples):
-    concatenated_examples = {k: sum(examples[k], []) for k in examples.keys()}
-    total_length = len(concatenated_examples[list(examples.keys())[0]])
-    total_length = (total_length // block_size) * block_size
-    results = {
-        k: [t[i : i + block_size] for i in range(0, total_length, block_size)] for k, t in concatenated_examples.items()
-    }
-    results["labels"] = results["input_ids"].copy()
-    return results
-
-
 def main():
     lm_dataset = prepare_dataset()
 
     print("lm_dataset[train][0]: ", lm_dataset["train"][0])
-    batch = lm_dataset["train"][0]
+    # batch = lm_dataset["train"][0]
 
     model_name = "distilgpt2"  # bert-base-cased distilgpt2 distilroberta-base
     tokenizer = AutoTokenizer.from_pretrained(model_name)
