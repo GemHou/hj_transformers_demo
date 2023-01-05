@@ -39,8 +39,8 @@ def group_texts(examples):
 
 def prepare_dataset(batch_size):
     # eli5_origin = load_dataset("eli5")
-    eli5_train = load_dataset("eli5", split="train_asks[:]").shuffle(seed=42)  # 50000 1000
-    eli5_valid = load_dataset("eli5", split="validation_asks[:]").shuffle(seed=42)
+    eli5_train = load_dataset("eli5", split="train_asks[:1000]").shuffle(seed=42)  # 50000 1000
+    eli5_valid = load_dataset("eli5", split="validation_asks[:1000]").shuffle(seed=42)
     eli5 = DatasetDict()
     eli5["train"] = eli5_train
     eli5["test"] = eli5_valid
@@ -158,6 +158,7 @@ def main():
         lm_dataset, train_dataloader, eval_dataloader = prepare_dataset(batch_size)
 
         model = AutoModelForCausalLM.from_pretrained("distilgpt2")  # bert-base-cased
+        model.load_state_dict(torch.load("../para_temp.pt"))
 
         optimizer = AdamW(model.parameters(), lr=2e-5)
 
@@ -176,6 +177,7 @@ def main():
 
         train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                    progress_bar, train_dataloader, eval_dataloader, writer, metric, batch_size)
+        torch.save(model.state_dict(), "../para_temp.pt")
 
         print("finished...")
 
