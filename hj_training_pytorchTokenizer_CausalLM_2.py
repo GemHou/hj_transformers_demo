@@ -46,66 +46,67 @@ def group_texts(examples):
     return results
 
 
+def prepare_eli5_dataset(batch_size):
+    # eli5_origin = load_dataset("eli5")
+    if DATA_NUM is None:
+        eli5_train = load_dataset("eli5", split="train_asks[:]").shuffle(seed=42)  # 50000 1000
+        eli5_valid = load_dataset("eli5", split="validation_asks[:]").shuffle(seed=42)
+    else:
+        eli5_train = load_dataset("eli5", split="train_asks[:" + str(DATA_NUM) + "]").shuffle(seed=42)  # 50000 1000
+        eli5_valid = load_dataset("eli5", split="validation_asks[:" + str(DATA_NUM) + "]").shuffle(seed=42)
+    eli5 = DatasetDict()
+    eli5["train"] = eli5_train
+    eli5["test"] = eli5_valid
+    # eli5 = eli5.train_test_split(test_size=0.2)
+    print("eli5[train][0]: ", eli5["train"][0])
+    eli5 = eli5.flatten()
+    print("eli5[train][0]: ", eli5["train"][0])
+    tokenized_eli5 = eli5.map(tokenize_function_eli5,
+                              batched=True,
+                              num_proc=8,
+                              remove_columns=eli5["train"].column_names)  # time!!!!!!!!!!!!!!!!!!!!!!!!
+    print("tokenized_eli5[train][0]: ", tokenized_eli5["train"][0])
+    lm_eli5 = tokenized_eli5.map(group_texts, batched=True, num_proc=8)
+    lm_eli5.set_format("torch")
+    train_dataloader_eli5 = DataLoader(lm_eli5["train"], shuffle=True, batch_size=batch_size)
+    eval_dataloader_eli5 = DataLoader(lm_eli5["test"], shuffle=True, batch_size=batch_size)
+    batch = next(iter(train_dataloader_eli5))
+    lm_dataset = lm_eli5
+    train_dataloader = train_dataloader_eli5
+    eval_dataloader = eval_dataloader_eli5
+    return eval_dataloader, lm_dataset, train_dataloader
+
+
+def prepare_wikipedia_dataset(batch_size):
+    if DATA_NUM is None:
+        wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
+                                 split="train[:]").shuffle(seed=42)
+    else:
+        wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
+                                 split="train[:" + str(DATA_NUM) + "]").shuffle(seed=42)
+    wikipedia = wikipedia.train_test_split(test_size=0.2)
+    print("wikipedia[train][0]: ", wikipedia["train"][0])
+    tokenized_wikipedia = wikipedia.map(tokenize_function_wikipedia,
+                                        batched=True,
+                                        num_proc=8,
+                                        remove_columns=wikipedia["train"].column_names)  # time!!!!!!!!!!!!!!!!!!!!!!!!
+    print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
+    lm_wikipedia = tokenized_wikipedia.map(group_texts, batched=True, num_proc=8)
+    print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
+    lm_wikipedia.set_format("torch")
+    train_dataloader_wikipedia = DataLoader(lm_wikipedia["train"], shuffle=True, batch_size=batch_size)
+    eval_dataloader_wikipedia = DataLoader(lm_wikipedia["test"], shuffle=True, batch_size=batch_size)
+    lm_dataset = lm_wikipedia
+    train_dataloader = train_dataloader_wikipedia
+    eval_dataloader = eval_dataloader_wikipedia
+    return eval_dataloader, lm_dataset, train_dataloader
+
+
 def prepare_dataset(batch_size):
     if DATASET_NAME == "eli5":
-        # eli5_origin = load_dataset("eli5")
-        if DATA_NUM is None:
-            eli5_train = load_dataset("eli5", split="train_asks[:]").shuffle(seed=42)  # 50000 1000
-            eli5_valid = load_dataset("eli5", split="validation_asks[:]").shuffle(seed=42)
-        else:
-            eli5_train = load_dataset("eli5", split="train_asks[:" + str(DATA_NUM)+ "]").shuffle(seed=42)  # 50000 1000
-            eli5_valid = load_dataset("eli5", split="validation_asks[:" + str(DATA_NUM)+ "]").shuffle(seed=42)
-        eli5 = DatasetDict()
-        eli5["train"] = eli5_train
-        eli5["test"] = eli5_valid
-        # eli5 = eli5.train_test_split(test_size=0.2)
-
-        print("eli5[train][0]: ", eli5["train"][0])
-        eli5 = eli5.flatten()
-        print("eli5[train][0]: ", eli5["train"][0])
-
-        tokenized_eli5 = eli5.map(tokenize_function_eli5,
-                                  batched=True,
-                                  num_proc=8,
-                                  remove_columns=eli5["train"].column_names)  # time!!!!!!!!!!!!!!!!!!!!!!!!
-
-        print("tokenized_eli5[train][0]: ", tokenized_eli5["train"][0])
-
-        lm_eli5 = tokenized_eli5.map(group_texts, batched=True, num_proc=8)
-
-        lm_eli5.set_format("torch")
-
-        train_dataloader_eli5 = DataLoader(lm_eli5["train"], shuffle=True, batch_size=batch_size)
-        eval_dataloader_eli5 = DataLoader(lm_eli5["test"], shuffle=True, batch_size=batch_size)
-
-        batch = next(iter(train_dataloader_eli5))
-
-        lm_dataset = lm_eli5
-        train_dataloader = train_dataloader_eli5
-        eval_dataloader = eval_dataloader_eli5
+        eval_dataloader, lm_dataset, train_dataloader = prepare_eli5_dataset(batch_size)
     elif DATASET_NAME == "wikipedia":
-        if DATA_NUM is None:
-            wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
-                                     split="train[:]").shuffle(seed=42)
-        else:
-            wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
-                                     split="train[:" + str(DATA_NUM)+ "]").shuffle(seed=42)
-        wikipedia = wikipedia.train_test_split(test_size=0.2)
-        print("wikipedia[train][0]: ", wikipedia["train"][0])
-        tokenized_wikipedia = wikipedia.map(tokenize_function_wikipedia,
-                                            batched=True,
-                                            num_proc=8,
-                                            remove_columns=wikipedia["train"].column_names)  # time!!!!!!!!!!!!!!!!!!!!!!!!
-        print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
-        lm_wikipedia = tokenized_wikipedia.map(group_texts, batched=True, num_proc=8)
-        print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
-        lm_wikipedia.set_format("torch")
-        train_dataloader_wikipedia = DataLoader(lm_wikipedia["train"], shuffle=True, batch_size=batch_size)
-        eval_dataloader_wikipedia = DataLoader(lm_wikipedia["test"], shuffle=True, batch_size=batch_size)
-
-        lm_dataset = lm_wikipedia
-        train_dataloader = train_dataloader_wikipedia
-        eval_dataloader = eval_dataloader_wikipedia
+        eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size)
     else:
         lm_dataset, train_dataloader, eval_dataloader = None, None, None
         raise
@@ -204,7 +205,7 @@ def main():
         lm_dataset, train_dataloader, eval_dataloader = prepare_dataset(batch_size)
 
         model = AutoModelForCausalLM.from_pretrained("distilgpt2")  # bert-base-cased
-        model.load_state_dict(torch.load("../para_temp.pt"))
+        # model.load_state_dict(torch.load("../para_temp.pt"))
 
         optimizer = AdamW(model.parameters(), lr=2e-5)
 

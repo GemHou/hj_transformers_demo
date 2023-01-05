@@ -49,6 +49,53 @@ def prepare_dataset():
            [dataloader_wikipedia]
 
 
+DATA_NUM = 1000  # None 1000
+BLOCK_SIZE = 128
+
+
+def tokenize_function_wikipedia(examples):
+    model_name = "distilgpt2"  # bert-base-cased distilgpt2
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    # return tokenizer(examples["text"], padding="max_length", truncation=True)
+    return tokenizer([" ".join(x) for x in examples["text"]], truncation=True)  # , padding="max_length"
+
+
+def group_texts(examples):
+    concatenated_examples = {k: sum(examples[k], []) for k in examples.keys()}
+    total_length = len(concatenated_examples[list(examples.keys())[0]])
+    total_length = (total_length // BLOCK_SIZE) * BLOCK_SIZE
+    results = {
+        k: [t[i : i + BLOCK_SIZE] for i in range(0, total_length, BLOCK_SIZE)] for k, t in concatenated_examples.items()
+    }
+    results["labels"] = results["input_ids"].copy()
+    return results
+
+
+def prepare_wikipedia_dataset(batch_size):
+    if DATA_NUM is None:
+        wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
+                                 split="train[:]").shuffle(seed=42)
+    else:
+        wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
+                                 split="train[:" + str(DATA_NUM) + "]").shuffle(seed=42)
+    wikipedia = wikipedia.train_test_split(test_size=0.2)
+    print("wikipedia[train][0]: ", wikipedia["train"][0])
+    tokenized_wikipedia = wikipedia.map(tokenize_function_wikipedia,
+                                        batched=True,
+                                        num_proc=8,
+                                        remove_columns=wikipedia["train"].column_names)  # time!!!!!!!!!!!!!!!!!!!!!!!!
+    print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
+    lm_wikipedia = tokenized_wikipedia.map(group_texts, batched=True, num_proc=8)
+    print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
+    lm_wikipedia.set_format("torch")
+    train_dataloader_wikipedia = DataLoader(lm_wikipedia["train"], shuffle=True, batch_size=batch_size)
+    eval_dataloader_wikipedia = DataLoader(lm_wikipedia["test"], shuffle=True, batch_size=batch_size)
+    lm_dataset = lm_wikipedia
+    train_dataloader = train_dataloader_wikipedia
+    eval_dataloader = eval_dataloader_wikipedia
+    return eval_dataloader, lm_dataset, train_dataloader
+
+
 def main():
     [dataloader_yelp_train, dataloader_yelp_eval], \
         [dataloader_wikipedia] = prepare_dataset()
