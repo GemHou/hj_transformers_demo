@@ -57,7 +57,9 @@ def tokenize_function_wikipedia(examples):
     model_name = "distilgpt2"  # bert-base-cased distilgpt2
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     # return tokenizer(examples["text"], padding="max_length", truncation=True)
-    return tokenizer([" ".join(x) for x in examples["text"]], truncation=True)  # , padding="max_length"
+    temp_1 = [" ".join(x) for x in examples["text"]]
+    temp2 = tokenizer(temp_1, truncation=True)
+    return temp2  # , padding="max_length"
 
 
 def group_texts(examples):
@@ -79,14 +81,17 @@ def prepare_wikipedia_dataset(batch_size):
         wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
                                  split="train[:" + str(DATA_NUM) + "]").shuffle(seed=42)
     wikipedia = wikipedia.train_test_split(test_size=0.2)
-    print("wikipedia[train][0]: ", wikipedia["train"][0])
+    batch = wikipedia["train"][0]
+    print("batch: ", batch)
     tokenized_wikipedia = wikipedia.map(tokenize_function_wikipedia,
                                         batched=True,
                                         num_proc=8,
                                         remove_columns=wikipedia["train"].column_names)  # time!!!!!!!!!!!!!!!!!!!!!!!!
-    print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
+    batch = tokenized_wikipedia["train"][0]
+    print("batch: ", batch)
     lm_wikipedia = tokenized_wikipedia.map(group_texts, batched=True, num_proc=8)
-    print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
+    batch = tokenized_wikipedia["train"][0]
+    print("batch: ", batch)
     # lm_wikipedia.set_format("torch")
     train_dataloader_wikipedia = DataLoader(lm_wikipedia["train"], shuffle=True, batch_size=batch_size)
     eval_dataloader_wikipedia = DataLoader(lm_wikipedia["test"], shuffle=True, batch_size=batch_size)
@@ -106,7 +111,17 @@ class HjDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         # print("item: ", item)
-        return self.hj_data[item]
+        result = dict()
+        result_str = self.hj_data[item]
+        temp_1 = [" ".join(x) for x in result_str]
+        model_name = "distilgpt2"  # bert-base-cased distilgpt2
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        temp2 = tokenizer(temp_1, truncation=True)
+
+        result["labels"] = temp2
+        result["input_ids"] = temp2
+
+        return result
 
 
 
@@ -124,10 +139,10 @@ def main():
 
     print("finish")
     """
-    eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=4)
+    eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=1)
     lm_train = lm_dataset["train"]
     hj_dataset = HjDataset()
-    train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=4)
+    train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=1)
 
     batch = next(iter(eval_dataloader))
     batch.pop('attention_mask')
