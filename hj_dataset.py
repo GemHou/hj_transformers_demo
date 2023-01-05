@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer
 import torch
 from torch.utils.data import DataLoader
@@ -87,7 +87,7 @@ def prepare_wikipedia_dataset(batch_size):
     print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
     lm_wikipedia = tokenized_wikipedia.map(group_texts, batched=True, num_proc=8)
     print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
-    lm_wikipedia.set_format("torch")
+    # lm_wikipedia.set_format("torch")
     train_dataloader_wikipedia = DataLoader(lm_wikipedia["train"], shuffle=True, batch_size=batch_size)
     eval_dataloader_wikipedia = DataLoader(lm_wikipedia["test"], shuffle=True, batch_size=batch_size)
     lm_dataset = lm_wikipedia
@@ -96,7 +96,22 @@ def prepare_wikipedia_dataset(batch_size):
     return eval_dataloader, lm_dataset, train_dataloader
 
 
+class HjDataset(torch.utils.data.Dataset):
+    def __init__(self):
+        self.hj_data = ["abcde", "12345", "xyz", "56789", "98765"]
+        pass
+
+    def __len__(self):
+        return len(self.hj_data)
+
+    def __getitem__(self, item):
+        # print("item: ", item)
+        return self.hj_data[item]
+
+
+
 def main():
+    """
     [dataloader_yelp_train, dataloader_yelp_eval], \
         [dataloader_wikipedia] = prepare_dataset()
 
@@ -108,6 +123,17 @@ def main():
     batch_wikipedia = {k: v.to(device) for k, v in batch_wikipedia.items()}
 
     print("finish")
+    """
+    eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=4)
+    lm_train = lm_dataset["train"]
+    hj_dataset = HjDataset()
+    train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=4)
+
+    batch = next(iter(eval_dataloader))
+    batch.pop('attention_mask')
+    batch_hj = next(iter(train_dataloader_hj))
+    print("batch_hj: ", batch_hj)
+    print("finished...................")
 
 
 if __name__ == '__main__':

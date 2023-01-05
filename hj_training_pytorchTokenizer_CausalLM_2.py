@@ -18,7 +18,7 @@ from tqdm.auto import tqdm
 BLOCK_SIZE = 128
 BATCH_SIZE_LIST = [4]
 DATASET_NAME = "wikipedia"  # "eli5"  "wikipedia"
-DATA_NUM = None  # None 1000
+DATA_NUM = 100  # None 1000
 
 
 def tokenize_function_eli5(examples):
@@ -121,6 +121,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
     for epoch in range(num_epochs):
         """"""
         for batch in train_dataloader:
+            # batch.pop('attention_mask')  # attention_mask labels input_ids
             start_time = time.time()
 
             train_global_step += 1
