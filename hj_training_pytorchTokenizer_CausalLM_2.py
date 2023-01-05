@@ -1,4 +1,4 @@
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict
 import numpy as np
 import evaluate
 import time
@@ -38,16 +38,22 @@ def group_texts(examples):
 
 
 def prepare_dataset(batch_size):
-    eli5 = load_dataset("eli5", split="train_asks[:]")  # 50000 1000
-    eli5 = eli5.train_test_split(test_size=0.2)
+    # eli5_origin = load_dataset("eli5")
+    eli5_train = load_dataset("eli5", split="train_asks[:]").shuffle(seed=42)  # 50000 1000
+    eli5_valid = load_dataset("eli5", split="validation_asks[:]").shuffle(seed=42)
+    eli5 = DatasetDict()
+    eli5["train"] = eli5_train
+    eli5["test"] = eli5_valid
+    # eli5 = eli5.train_test_split(test_size=0.2)
+
     print("eli5[train][0]: ", eli5["train"][0])
     eli5 = eli5.flatten()
     print("eli5[train][0]: ", eli5["train"][0])
 
     tokenized_eli5 = eli5.map(tokenize_function,
                               batched=True,
-                              num_proc=4,
-                              remove_columns=eli5["train"].column_names)
+                              num_proc=8,
+                              remove_columns=eli5["train"].column_names)  # time!!!!!!!!!!!!!!!!!!!!!!!!
 
     lm_dataset = tokenized_eli5.map(group_texts, batched=True, num_proc=4)
 
@@ -155,7 +161,7 @@ def main():
 
         optimizer = AdamW(model.parameters(), lr=2e-5)
 
-        num_epochs = 1
+        num_epochs = 3
         num_training_steps = num_epochs * len(train_dataloader)  # lm_dataset["train"]
         lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0,
                                      num_training_steps=num_training_steps)
