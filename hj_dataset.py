@@ -103,7 +103,9 @@ def prepare_wikipedia_dataset(batch_size):
 
 class HjDataset(torch.utils.data.Dataset):
     def __init__(self):
-        self.hj_data = ["abcde", "12345", "xyzxy", "56789", "98765"]
+        # self.hj_data = ["abcde", "12345", "xyzxy", "56789", "98765"]
+        self.hj_data = ["GPGSDSPDRPWNPPTFSPALLVVTEGDNATFTCSFSNTSESFHVVWHRESPSGQTDTLAAFPEDRSQPGQDARFRVTQLPNGRDFHMSVVRARRNDSGTYVCGVISLAPKIQIKESLRAELRVTERAAA",
+                        "GPGSDSPDRPWNPPTFSPALLVVTEGDNATFTCSFSNTSESFHVVWHRESPSGQTDTLAAFPEDRSQPGQDARFRVTQLPNGRDFHMSVVRARRNDSGTYVCGVISLAPKIQIKESLRAELRVTERAAA"]
         self.output_format = "list"
 
     def __len__(self):

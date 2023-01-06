@@ -187,7 +187,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
 
             """"""
 
-            if train_global_step % 2 == 0:
+            if train_global_step % 1 == 0:
 
                 model.eval()
                 # for batch in eval_dataloader:
@@ -252,7 +252,7 @@ def main():
 
         optimizer = AdamW(model.parameters(), lr=2e-5)
 
-        num_epochs = 3
+        num_epochs = 100
         num_training_steps = num_epochs * len(train_dataloader)  # lm_dataset["train"]
         lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0,
                                      num_training_steps=num_training_steps)
