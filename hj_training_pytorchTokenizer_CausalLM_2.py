@@ -107,6 +107,7 @@ def prepare_wikipedia_dataset(batch_size):
 def prepare_hj_dataset(batch_size):
     from hj_dataset import HjDataset
     hj_dataset = HjDataset()
+    hj_dataset.set_format("torch")
     train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=2)
 
     eval_dataloader_hj = train_dataloader_hj
