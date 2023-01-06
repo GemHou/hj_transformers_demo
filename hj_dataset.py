@@ -92,7 +92,7 @@ def prepare_wikipedia_dataset(batch_size):
     lm_wikipedia = tokenized_wikipedia.map(group_texts, batched=True, num_proc=8)
     batch = tokenized_wikipedia["train"][0]
     print("batch: ", batch)
-    # lm_wikipedia.set_format("torch")
+    lm_wikipedia.set_format("torch")
     train_dataloader_wikipedia = DataLoader(lm_wikipedia["train"], shuffle=True, batch_size=batch_size)
     eval_dataloader_wikipedia = DataLoader(lm_wikipedia["test"], shuffle=True, batch_size=batch_size)
     lm_dataset = lm_wikipedia
@@ -121,8 +121,8 @@ class HjDataset(torch.utils.data.Dataset):
         temp2 = tokenizer(temp_1, truncation=True)
         temp3 = temp2.data
 
-        temp3['input_ids'] = temp3['input_ids'][0]
-        temp3['attention_mask'] = temp3['attention_mask'][0]
+        temp3['input_ids'] = torch.tensor(temp3['input_ids'][0])
+        temp3['attention_mask'] = torch.tensor(temp3['attention_mask'][0])
 
         # result["labels"] = temp3
         # result["input_ids"] = temp3
@@ -151,6 +151,7 @@ def main():
     eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=2)
     lm_train = lm_dataset["train"]
     hj_dataset = HjDataset()
+    # hj_dataset.set_format("torch")
     train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=2)
 
     batch = next(iter(eval_dataloader))
