@@ -111,35 +111,30 @@ class HjDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.hj_data)
 
-    def __getitem__(self, item):
-        # print("item: ", item)
-        # result = dict()
-        result_str = [self.hj_data[item]]
-        # result_str = ["abcde", "12345", "xyz", "56789", "98765"]
-        # result_str = ["abcde"]
-        temp_1 = [" ".join(x) for x in result_str]
+    def process_data(self, data_raw):
+        data_list = [data_raw]
+        data_space = [" ".join(x) for x in data_list]
         model_name = "distilgpt2"  # bert-base-cased distilgpt2
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        temp2 = tokenizer(temp_1, truncation=True)
-        temp3 = temp2.data
-
-        temp3['input_ids'] = temp3['input_ids'][0]
-        temp3['attention_mask'] = temp3['attention_mask'][0]
+        data_tokenizer = tokenizer(data_space, truncation=True)
+        data_data = data_tokenizer.data
+        data_data['input_ids'] = data_data['input_ids'][0]
+        data_data['attention_mask'] = data_data['attention_mask'][0]
         if self.output_format == "list":
             pass
         elif self.output_format == "torch":
-            temp3['input_ids'] = torch.tensor(temp3['input_ids'])
-            temp3['attention_mask'] = torch.tensor(temp3['attention_mask'])
+            data_data['input_ids'] = torch.tensor(data_data['input_ids'])
+            data_data['attention_mask'] = torch.tensor(data_data['attention_mask'])
         else:
             raise
+        data_data['labels'] = data_data['input_ids']
+        data_final = data_data
+        return data_final
 
-        # result["labels"] = temp3
-        # result["input_ids"] = temp3
-
-        result = temp3
-        result['labels'] = result['input_ids']
-
-        return result
+    def __getitem__(self, item):
+        data_raw = self.hj_data[item]
+        data_final = self.process_data(data_raw)
+        return data_final
 
     def set_format(self, output_format):
         if output_format == "torch":
