@@ -104,8 +104,18 @@ def prepare_wikipedia_dataset(batch_size):
 class HjDataset(torch.utils.data.Dataset):
     def __init__(self):
         # self.hj_data = ["abcde", "12345", "xyzxy", "56789", "98765"]
-        self.hj_data = ["GPGSDSPDRPWNPPTFSPALLVVTEGDNATFTCSFSNTSESFHVVWHRESPSGQTDTLAAFPEDRSQPGQDARFRVTQLPNGRDFHMSVVRARRNDSGTYVCGVISLAPKIQIKESLRAELRVTERAAA",
-                        "GPGSDSPDRPWNPPTFSPALLVVTEGDNATFTCSFSNTSESFHVVWHRESPSGQTDTLAAFPEDRSQPGQDARFRVTQLPNGRDFHMSVVRARRNDSGTYVCGVISLAPKIQIKESLRAELRVTERAAA"]
+        self.hj_data = ["GHSKMSDVKCTSVVLLSVLQQLRVESSSKLWAQCVQLHNDILLAKDTTEAFEKMVSLLSVLLSMQGAVDINRLCEEMLDNRATLQ",
+                        "VILPNNDRHQITDTTNGHYAPVTYIQVEAPTGTFIASGVVVGKDTLLTNKHVVDATHGDPHALKAFPSAINQDNYPNGGFTAEQITKYSGEGDLAIVKFSPNEQNKHIGEVVKPATMSNNAETQTNQNITVTGYPGDKPVATMWESKGKITYLKGEAMQYDLSTTGGNSGSPVFNEKNEVIGIHWGGVPNEFNGAVFINENVRNFLKQNIEDINFANDDQPNNPDNPDNPNNPDNPNNPDNPNNPDEPNNPDNPNNPDNPDNGDNNNSDNPDAA",
+                        "MISLIAALAVDRVIGMENAMPWNLPADLAWFKRNTLNKPVIMGRHTWESIGRPLPGRKNIILSSQPGTDDRVTWVKSVDEAIAACGDVPEIMVIGGGRVYEQFLPKAQKLYLTHIDAEVEGDTHFPDYEPDDWESVFSEFHDADAQNSHSYCFEILERR",
+                        "MASMAKKDVIELEGTVSEALPNAMFKVKLENGHEILCHISGKLRMNFIRILEGDKVNVELSPYDLTRGRITWRKKLEHHHHHH",
+                        "QYDDHPPVFQKKFYIGGVSEDARMFASVLRVKATDRDTGNYSAMAYRLIIPPIKEGKEGFVVETYTGLIKTAMLFHNMRRSYFKFQVIATDDYGKGLSGKADVLVSVVNQLDMQVIVSNVPPTLVEKKIEDLTEILDRYVQEQIPGAKVVVESIGARRHGDAYSLEDYSKCDLTVYAIDPQTNRAIDRNELFKFLDGKLLDINKDFQPYYGEGGRILEIRTPEAVTSIKKRGESLGYTEGASRLVPR",
+                        "GPGSDSPDRPWNPPTFSPALLVVTEGDNATFTCSFSNTSESFHVVWHRESPSGQTDTLAAFPEDRSQPGQDARFRVTQLPNGRDFHMSVVRARRNDSGTYVCGVISLAPKIQIKESLRAELRVTERAAA",
+                        "XADQLTEEQIAEFKEAFSLFDKDGDGTITTKELGTVMRSLGQNPTEAELQDMINEVDADGNGTIDFPEFLTMMARKMKDTDSEEEIREAFRVFDKDGNGYISAAELRHVMTNLGEKLTDEEVDEMIREADIDGDGQVNYEEFVQMMTAK",
+                        "MKGDTKVINYLNKLLGNELVAINQYFLHARMFKNWGLKRLNDVEYHESIDEMKHADRYIERILFLEGLPNLQDLGKLNIGEDVEEMLRSDLALELDGAKNLREAIGYADSVHDYVSRDMMIEILRDEEGHIDWLETELDLIQKMGLQNYLQAQIREEG",
+                        "MSHHWGYGKHNGPEHWHKDFPIAKGERQSPVDIDTHTAKYDPSLKPLSVSYDQATSLRILNNGHAFNVEFDDSQDKAVLKGGPLDGTYRLIQFHFHWGSLDGQGSEHTVDKKKYAAELHLVHWNTKYGDFGKAVQQPDGLAVLGIFLKVGSAKPGLQKVVDVLDSIKTKGKSADFTNFDPRGLLPESLDYWTYPGSLTTPPLLECVTWIVLKEPISVSSEQVLKFRKLNFNGEGEPEELMVDNWRPAQPLKNRQIKASFK",
+                        "MNTPEHMTAVVQRYVAALNAGDLDGIVALFADDATVENPVGSEPRSGTAAIREFYANSLKLPLAVELTQEVRAVANEAAFAFIVSFEYQGRKTVVAPIDHFRFNGAGKVVSMRALFGEKNIHAGA",
+                        "SQIPASEQETLVRPKPLLLKLLKSVGAQKDTYTMKEVLFYLGQYIMTKRLYDEKQQHIVYCSNDLLGDLFGVPSFSVKEHRKIYTMIYRNLVVVNQQESSDSGTSVSEN",
+                        ]
         self.output_format = "torch"
         self.processed_data = self.process_batch_data(self.hj_data)
         print("debug")
@@ -119,7 +129,17 @@ class HjDataset(torch.utils.data.Dataset):
         model_name = "distilgpt2"  # bert-base-cased distilgpt2
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         data_tokenizer = tokenizer(data_space, truncation=True)
-        data_data = data_tokenizer.data
+
+        concatenated_examples = {k: sum(data_tokenizer[k], []) for k in data_tokenizer.keys()}
+        total_length = len(concatenated_examples[list(data_tokenizer.keys())[0]])
+        total_length = (total_length // BLOCK_SIZE) * BLOCK_SIZE
+        results = {
+            k: [t[i: i + BLOCK_SIZE] for i in range(0, total_length, BLOCK_SIZE)] for k, t in
+            concatenated_examples.items()
+        }
+        data_data = results
+
+        # data_data = data_tokenizer.data
         data_data['input_ids'] = data_data['input_ids'][0]
         data_data['attention_mask'] = data_data['attention_mask'][0]
         if self.output_format == "list":
@@ -138,9 +158,17 @@ class HjDataset(torch.utils.data.Dataset):
         model_name = "distilgpt2"  # bert-base-cased distilgpt2
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         data_tokenizer = tokenizer(data_space, truncation=True)
-        data_data = data_tokenizer.data
-        # data_data['input_ids'] = data_data['input_ids'][0]
-        # data_data['attention_mask'] = data_data['attention_mask'][0]
+
+        concatenated_examples = {k: sum(data_tokenizer[k], []) for k in data_tokenizer.keys()}
+        total_length = len(concatenated_examples[list(data_tokenizer.keys())[0]])
+        total_length = (total_length // BLOCK_SIZE) * BLOCK_SIZE
+        results = {
+            k: [t[i: i + BLOCK_SIZE] for i in range(0, total_length, BLOCK_SIZE)] for k, t in
+            concatenated_examples.items()
+        }
+        data_data = results
+
+        # data_data = data_tokenizer.data
         if self.output_format == "list":
             pass
         elif self.output_format == "torch":
