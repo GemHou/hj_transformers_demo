@@ -104,7 +104,7 @@ def prepare_wikipedia_dataset(batch_size):
 class HjDataset(torch.utils.data.Dataset):
     def __init__(self):
         self.hj_data = ["abcde", "12345", "xyz", "56789", "98765"]
-        pass
+        self.output_format = "list"
 
     def __len__(self):
         return len(self.hj_data)
@@ -121,8 +121,15 @@ class HjDataset(torch.utils.data.Dataset):
         temp2 = tokenizer(temp_1, truncation=True)
         temp3 = temp2.data
 
-        temp3['input_ids'] = torch.tensor(temp3['input_ids'][0])
-        temp3['attention_mask'] = torch.tensor(temp3['attention_mask'][0])
+        temp3['input_ids'] = temp3['input_ids'][0]
+        temp3['attention_mask'] = temp3['attention_mask'][0]
+        if self.output_format == "list":
+            pass
+        elif self.output_format == "torch":
+            temp3['input_ids'] = torch.tensor(temp3['input_ids'])
+            temp3['attention_mask'] = torch.tensor(temp3['attention_mask'])
+        else:
+            raise
 
         # result["labels"] = temp3
         # result["input_ids"] = temp3
@@ -132,6 +139,9 @@ class HjDataset(torch.utils.data.Dataset):
 
         return result
 
+    def set_format(self, output_format):
+        if output_format == "torch":
+            self.output_format = output_format
 
 
 def main():
@@ -151,7 +161,7 @@ def main():
     eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=2)
     lm_train = lm_dataset["train"]
     hj_dataset = HjDataset()
-    # hj_dataset.set_format("torch")
+    hj_dataset.set_format("torch")
     train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=2)
 
     batch = next(iter(eval_dataloader))
