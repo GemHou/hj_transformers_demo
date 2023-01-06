@@ -49,7 +49,7 @@ def prepare_dataset():
            [dataloader_wikipedia]
 
 
-DATA_NUM = 1000  # None 1000
+DATA_NUM = 10  # None 1000
 BLOCK_SIZE = 128
 
 
@@ -106,7 +106,9 @@ class HjDataset(torch.utils.data.Dataset):
         # self.hj_data = ["abcde", "12345", "xyzxy", "56789", "98765"]
         self.hj_data = ["GPGSDSPDRPWNPPTFSPALLVVTEGDNATFTCSFSNTSESFHVVWHRESPSGQTDTLAAFPEDRSQPGQDARFRVTQLPNGRDFHMSVVRARRNDSGTYVCGVISLAPKIQIKESLRAELRVTERAAA",
                         "GPGSDSPDRPWNPPTFSPALLVVTEGDNATFTCSFSNTSESFHVVWHRESPSGQTDTLAAFPEDRSQPGQDARFRVTQLPNGRDFHMSVVRARRNDSGTYVCGVISLAPKIQIKESLRAELRVTERAAA"]
-        self.output_format = "list"
+        self.output_format = "torch"
+        self.processed_data = self.process_batch_data(self.hj_data)
+        print("debug")
 
     def __len__(self):
         return len(self.hj_data)
@@ -131,10 +133,35 @@ class HjDataset(torch.utils.data.Dataset):
         data_final = data_data
         return data_final
 
-    def __getitem__(self, item):
-        data_raw = self.hj_data[item]
-        data_final = self.process_data(data_raw)
+    def process_batch_data(self, data_list):
+        data_space = [" ".join(x) for x in data_list]
+        model_name = "distilgpt2"  # bert-base-cased distilgpt2
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        data_tokenizer = tokenizer(data_space, truncation=True)
+        data_data = data_tokenizer.data
+        # data_data['input_ids'] = data_data['input_ids'][0]
+        # data_data['attention_mask'] = data_data['attention_mask'][0]
+        if self.output_format == "list":
+            pass
+        elif self.output_format == "torch":
+            data_data['input_ids'] = torch.tensor(data_data['input_ids'])
+            data_data['attention_mask'] = torch.tensor(data_data['attention_mask'])
+        else:
+            raise
+        data_data['labels'] = data_data['input_ids']
+        data_final = data_data
         return data_final
+
+    def __getitem__(self, item):
+        # data_raw = self.hj_data[item]
+        # data_final_1 = self.process_data(data_raw)
+
+        data_final_2 = dict()
+        data_final_2["input_ids"] = self.processed_data["input_ids"][item]
+        data_final_2["attention_mask"] = self.processed_data["attention_mask"][item]
+        data_final_2["labels"] = self.processed_data["labels"][item]
+
+        return data_final_2
 
     def set_format(self, output_format):
         if output_format == "torch":
@@ -155,13 +182,14 @@ def main():
 
     print("finish")
     """
-    eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=2)
-    lm_train = lm_dataset["train"]
+    # eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=2)
+    # lm_train = lm_dataset["train"]
+    # batch_wikipedia = next(iter(eval_dataloader))
+
     hj_dataset = HjDataset()
     hj_dataset.set_format("torch")
     train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=2)
 
-    batch = next(iter(eval_dataloader))
     # batch.pop('attention_mask')
     batch_hj = next(iter(train_dataloader_hj))
     print("batch_hj: ", batch_hj)
