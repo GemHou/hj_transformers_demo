@@ -113,13 +113,22 @@ class HjDataset(torch.utils.data.Dataset):
         # print("item: ", item)
         result = dict()
         result_str = self.hj_data[item]
+        # result_str = ["abcde", "12345", "xyz", "56789", "98765"]
+        result_str = ["abcde"]
         temp_1 = [" ".join(x) for x in result_str]
         model_name = "distilgpt2"  # bert-base-cased distilgpt2
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         temp2 = tokenizer(temp_1, truncation=True)
+        temp3 = temp2.data
 
-        result["labels"] = temp2
-        result["input_ids"] = temp2
+        temp3['input_ids'] = temp3['input_ids'][0]
+        temp3['attention_mask'] = temp3['attention_mask'][0]
+
+        # result["labels"] = temp3
+        # result["input_ids"] = temp3
+
+        result = temp3
+        result['labels'] = result['input_ids']
 
         return result
 
@@ -139,13 +148,13 @@ def main():
 
     print("finish")
     """
-    eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=1)
+    eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size=2)
     lm_train = lm_dataset["train"]
     hj_dataset = HjDataset()
-    train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=1)
+    train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=2)
 
     batch = next(iter(eval_dataloader))
-    batch.pop('attention_mask')
+    # batch.pop('attention_mask')
     batch_hj = next(iter(train_dataloader_hj))
     print("batch_hj: ", batch_hj)
     print("finished...................")
