@@ -160,11 +160,11 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                progress_bar, train_dataloader, eval_dataloader, writer, metric, batch_size):
     train_global_step = 0
     model.train()
+    last_time = time.time()
     for epoch in range(num_epochs):
         """"""
         for batch in train_dataloader:
             # batch.pop('attention_mask')  # attention_mask labels input_ids
-            start_time = time.time()
 
             train_global_step += 1
             batch = {k: v.to(device) for k, v in batch.items()}
@@ -183,7 +183,9 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
             optimizer.zero_grad()
             progress_bar.update(1)
 
-            batch_time = time.time() - start_time
+            now_time = time.time()
+            batch_time = now_time - last_time
+            last_time = now_time
 
             """"""
 
