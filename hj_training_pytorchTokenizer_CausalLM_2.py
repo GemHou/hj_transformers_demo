@@ -17,10 +17,10 @@ from tqdm.auto import tqdm
 
 BLOCK_SIZE = 128
 BATCH_SIZE_LIST = [2]
-DATASET_NAME = "wikipedia"  # "eli5"  "wikipedia"
+DATASET_NAME = "hj"  # eli5 wikipedia hj
 DATA_NUM = 2  # None 1000
 
-assert DATA_NUM > min(BATCH_SIZE_LIST)
+assert DATA_NUM >= min(BATCH_SIZE_LIST)
 
 
 def tokenize_function_eli5(examples):
@@ -104,11 +104,50 @@ def prepare_wikipedia_dataset(batch_size):
     return eval_dataloader, lm_dataset, train_dataloader
 
 
+def prepare_hj_dataset(batch_size):
+    from hj_dataset import HjDataset
+    hj_dataset = HjDataset()
+    train_dataloader_hj = DataLoader(hj_dataset, shuffle=True, batch_size=2)
+
+    eval_dataloader_hj = train_dataloader_hj
+
+    train_dataloader = train_dataloader_hj
+    eval_dataloader = eval_dataloader_hj
+    lm_dataset = hj_dataset
+
+    """
+    if DATA_NUM is None:
+        wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
+                                 split="train[:]").shuffle(seed=42)
+    else:
+        wikipedia = load_dataset("wikipedia", '20220301.simple', beam_runner='DirectRunner',
+                                 split="train[:" + str(DATA_NUM) + "]").shuffle(seed=42)
+    wikipedia = wikipedia.train_test_split(test_size=0.2)
+    print("wikipedia[train][0]: ", wikipedia["train"][0])
+    tokenized_wikipedia = wikipedia.map(tokenize_function_wikipedia,
+                                        batched=True,
+                                        num_proc=8,
+                                        remove_columns=wikipedia["train"].column_names)  # time!!!!!!!!!!!!!!!!!!!!!!!!
+    print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
+    lm_wikipedia = tokenized_wikipedia.map(group_texts, batched=True, num_proc=8)
+    print("tokenized_wikipedia[train][0]: ", tokenized_wikipedia["train"][0])
+    lm_wikipedia.set_format("torch")
+    train_dataloader_wikipedia = DataLoader(lm_wikipedia["train"], shuffle=True, batch_size=batch_size)
+    eval_dataloader_wikipedia = DataLoader(lm_wikipedia["test"], shuffle=True, batch_size=batch_size)
+    lm_dataset = lm_wikipedia
+    train_dataloader = train_dataloader_wikipedia
+    eval_dataloader = eval_dataloader_wikipedia
+    """
+    return eval_dataloader, lm_dataset, train_dataloader
+
+
 def prepare_dataset(batch_size):
     if DATASET_NAME == "eli5":
         eval_dataloader, lm_dataset, train_dataloader = prepare_eli5_dataset(batch_size)
     elif DATASET_NAME == "wikipedia":
         eval_dataloader, lm_dataset, train_dataloader = prepare_wikipedia_dataset(batch_size)
+    elif DATASET_NAME == "hj":
+        eval_dataloader, lm_dataset, train_dataloader = prepare_hj_dataset(batch_size)
     else:
         lm_dataset, train_dataloader, eval_dataloader = None, None, None
         raise
