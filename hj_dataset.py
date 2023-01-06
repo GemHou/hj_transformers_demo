@@ -103,7 +103,7 @@ def prepare_wikipedia_dataset(batch_size):
 
 class HjDataset(torch.utils.data.Dataset):
     def __init__(self):
-        self.hj_data = ["abcde", "12345", "xyz", "56789", "98765"]
+        self.hj_data = ["abcde", "12345", "xyzxy", "56789", "98765"]
         self.output_format = "list"
 
     def __len__(self):
@@ -111,10 +111,10 @@ class HjDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, item):
         # print("item: ", item)
-        result = dict()
-        result_str = self.hj_data[item]
+        # result = dict()
+        result_str = [self.hj_data[item]]
         # result_str = ["abcde", "12345", "xyz", "56789", "98765"]
-        result_str = ["abcde"]
+        # result_str = ["abcde"]
         temp_1 = [" ".join(x) for x in result_str]
         model_name = "distilgpt2"  # bert-base-cased distilgpt2
         tokenizer = AutoTokenizer.from_pretrained(model_name)
