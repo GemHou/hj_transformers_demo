@@ -2,6 +2,9 @@ from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer
 import torch
 from torch.utils.data import DataLoader
+import os
+import re
+import time
 
 
 def tokenize_function_bert(examples):
@@ -101,10 +104,41 @@ def prepare_wikipedia_dataset(batch_size):
     return eval_dataloader, lm_dataset, train_dataloader
 
 
+def list_files_with_extensions(temp_dir, extensions):
+    return [f for f in os.listdir(temp_dir) if f.endswith(extensions)]
+
+
+def parse_fasta(data):
+    data = re.sub('>$', '', data, flags=re.M)
+    lines = [
+                l.replace('\n', '')
+                for prot in data.split('>') for l in prot.strip().split('\n', 1)
+            ][1:]
+    tags, seqs = lines[::2], lines[1::2]
+
+    tags = [t.split()[0] for t in tags]
+
+    return tags, seqs
+
+
+def hj_group_text(data_tokenizer):
+    start_time = time.time()
+    concatenated_examples = {k: sum(data_tokenizer[k], []) for k in data_tokenizer.keys()}
+    total_length = len(concatenated_examples[list(data_tokenizer.keys())[0]])
+    total_length = (total_length // BLOCK_SIZE) * BLOCK_SIZE
+    results = {
+        k: [t[i: i + BLOCK_SIZE] for i in range(0, total_length, BLOCK_SIZE)] for k, t in
+        concatenated_examples.items()
+    }
+    print("group text time: ", time.time()-start_time)
+    return results
+
+
 class HjDataset(torch.utils.data.Dataset):
     def __init__(self, train_test_mode="train"):
         # self.hj_data = ["abcde", "12345", "xyzxy", "56789", "98765"]
         if train_test_mode == "train":
+            """
             self.hj_data = ["GHSKMSDVKCTSVVLLSVLQQLRVESSSKLWAQCVQLHNDILLAKDTTEAFEKMVSLLSVLLSMQGAVDINRLCEEMLDNRATLQ",
                             "VILPNNDRHQITDTTNGHYAPVTYIQVEAPTGTFIASGVVVGKDTLLTNKHVVDATHGDPHALKAFPSAINQDNYPNGGFTAEQITKYSGEGDLAIVKFSPNEQNKHIGEVVKPATMSNNAETQTNQNITVTGYPGDKPVATMWESKGKITYLKGEAMQYDLSTTGGNSGSPVFNEKNEVIGIHWGGVPNEFNGAVFINENVRNFLKQNIEDINFANDDQPNNPDNPDNPNNPDNPNNPDNPNNPDEPNNPDNPNNPDNPDNGDNNNSDNPDAA",
                             "MISLIAALAVDRVIGMENAMPWNLPADLAWFKRNTLNKPVIMGRHTWESIGRPLPGRKNIILSSQPGTDDRVTWVKSVDEAIAACGDVPEIMVIGGGRVYEQFLPKAQKLYLTHIDAEVEGDTHFPDYEPDDWESVFSEFHDADAQNSHSYCFEILERR",
@@ -113,22 +147,46 @@ class HjDataset(torch.utils.data.Dataset):
                             "GPGSDSPDRPWNPPTFSPALLVVTEGDNATFTCSFSNTSESFHVVWHRESPSGQTDTLAAFPEDRSQPGQDARFRVTQLPNGRDFHMSVVRARRNDSGTYVCGVISLAPKIQIKESLRAELRVTERAAA",
                             "XADQLTEEQIAEFKEAFSLFDKDGDGTITTKELGTVMRSLGQNPTEAELQDMINEVDADGNGTIDFPEFLTMMARKMKDTDSEEEIREAFRVFDKDGNGYISAAELRHVMTNLGEKLTDEEVDEMIREADIDGDGQVNYEEFVQMMTAK",
                             "MKGDTKVINYLNKLLGNELVAINQYFLHARMFKNWGLKRLNDVEYHESIDEMKHADRYIERILFLEGLPNLQDLGKLNIGEDVEEMLRSDLALELDGAKNLREAIGYADSVHDYVSRDMMIEILRDEEGHIDWLETELDLIQKMGLQNYLQAQIREEG",
-                            ]
-        elif train_test_mode == "test":
-            self.hj_data = ["MSHHWGYGKHNGPEHWHKDFPIAKGERQSPVDIDTHTAKYDPSLKPLSVSYDQATSLRILNNGHAFNVEFDDSQDKAVLKGGPLDGTYRLIQFHFHWGSLDGQGSEHTVDKKKYAAELHLVHWNTKYGDFGKAVQQPDGLAVLGIFLKVGSAKPGLQKVVDVLDSIKTKGKSADFTNFDPRGLLPESLDYWTYPGSLTTPPLLECVTWIVLKEPISVSSEQVLKFRKLNFNGEGEPEELMVDNWRPAQPLKNRQIKASFK",
                             "SQIPASEQETLVRPKPLLLKLLKSVGAQKDTYTMKEVLFYLGQYIMTKRLYDEKQQHIVYCSNDLLGDLFGVPSFSVKEHRKIYTMIYRNLVVVNQQESSDSGTSVSEN",
+                            ]
+            """
+            fasta_dir = "/home/gemhou/Study/data"
+            seqs = None
+            for fasta_file in list_files_with_extensions(fasta_dir, (".fasta", ".fa")):
+                with open(os.path.join(fasta_dir, fasta_file), "r") as fp:
+                    data = fp.read()
+                tags, seqs = parse_fasta(data)
+            seq_datasets = seqs
+            self.fasta_data = seq_datasets
+            self.hj_data = seq_datasets[0:10000]  # 1000:0.6s 10000:143s
+
+        elif train_test_mode == "test":
+            """
+            self.hj_data = ["MSHHWGYGKHNGPEHWHKDFPIAKGERQSPVDIDTHTAKYDPSLKPLSVSYDQATSLRILNNGHAFNVEFDDSQDKAVLKGGPLDGTYRLIQFHFHWGSLDGQGSEHTVDKKKYAAELHLVHWNTKYGDFGKAVQQPDGLAVLGIFLKVGSAKPGLQKVVDVLDSIKTKGKSADFTNFDPRGLLPESLDYWTYPGSLTTPPLLECVTWIVLKEPISVSSEQVLKFRKLNFNGEGEPEELMVDNWRPAQPLKNRQIKASFK",
                             "MNTPEHMTAVVQRYVAALNAGDLDGIVALFADDATVENPVGSEPRSGTAAIREFYANSLKLPLAVELTQEVRAVANEAAFAFIVSFEYQGRKTVVAPIDHFRFNGAGKVVSMRALFGEKNIHAGA",
                             ]
+            """
+
+            fasta_dir = "/home/gemhou/Study/data"
+            seqs = None
+            for fasta_file in list_files_with_extensions(fasta_dir, (".fasta", ".fa")):
+                with open(os.path.join(fasta_dir, fasta_file), "r") as fp:
+                    data = fp.read()
+                tags, seqs = parse_fasta(data)
+            seq_datasets = seqs
+            self.fasta_data = seq_datasets
+            self.hj_data = seq_datasets[10000:11000]
         else:
             self.hj_data = None
             raise
 
         self.output_format = "torch"
+        print("process_batch_data waiting......")
         self.processed_data = self.process_batch_data(self.hj_data)
         print("debug")
 
     def __len__(self):
-        return len(self.hj_data)
+        return len(self.processed_data["input_ids"])
 
     def process_data(self, data_raw):
         data_list = [data_raw]
@@ -137,13 +195,7 @@ class HjDataset(torch.utils.data.Dataset):
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         data_tokenizer = tokenizer(data_space, truncation=True)
 
-        concatenated_examples = {k: sum(data_tokenizer[k], []) for k in data_tokenizer.keys()}
-        total_length = len(concatenated_examples[list(data_tokenizer.keys())[0]])
-        total_length = (total_length // BLOCK_SIZE) * BLOCK_SIZE
-        results = {
-            k: [t[i: i + BLOCK_SIZE] for i in range(0, total_length, BLOCK_SIZE)] for k, t in
-            concatenated_examples.items()
-        }
+        results = hj_group_text(data_tokenizer)
         data_data = results
 
         # data_data = data_tokenizer.data
@@ -166,13 +218,7 @@ class HjDataset(torch.utils.data.Dataset):
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         data_tokenizer = tokenizer(data_space, truncation=True)
 
-        concatenated_examples = {k: sum(data_tokenizer[k], []) for k in data_tokenizer.keys()}
-        total_length = len(concatenated_examples[list(data_tokenizer.keys())[0]])
-        total_length = (total_length // BLOCK_SIZE) * BLOCK_SIZE
-        results = {
-            k: [t[i: i + BLOCK_SIZE] for i in range(0, total_length, BLOCK_SIZE)] for k, t in
-            concatenated_examples.items()
-        }
+        results = hj_group_text(data_tokenizer)
         data_data = results
 
         # data_data = data_tokenizer.data
