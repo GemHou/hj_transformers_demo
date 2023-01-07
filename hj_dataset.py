@@ -147,6 +147,8 @@ def process_repeated_data(seq_datasets):
 
 class HjDataset(torch.utils.data.Dataset):
     def process_batch_data(self, data_list):
+        start_time = time.time()
+
         data_space = [" ".join(x) for x in data_list]
         model_name = "distilgpt2"  # bert-base-cased distilgpt2
         tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -186,6 +188,8 @@ class HjDataset(torch.utils.data.Dataset):
             raise
         data_data['labels'] = data_data['input_ids']
         data_final = data_data
+
+        print("process_batch_data time: ", time.time() - start_time)
         return data_final
 
     def __init__(self, train_test_mode="train"):
@@ -210,9 +214,9 @@ class HjDataset(torch.utils.data.Dataset):
                     data = fp.read()
                 tags, seqs = parse_fasta(data)
             seq_datasets = seqs
+            seq_datasets = seq_datasets[:int(len(seq_datasets)*0.8)]
             seq_datasets = process_repeated_data(seq_datasets)
-            self.fasta_data = seq_datasets
-            self.hj_data = seq_datasets[0:1000]  # 1000:0.6s 10000:143s
+            self.hj_data = seq_datasets # 1000:0.6s 10000:143s
 
         elif train_test_mode == "test":
             """
@@ -228,9 +232,9 @@ class HjDataset(torch.utils.data.Dataset):
                     data = fp.read()
                 tags, seqs = parse_fasta(data)
             seq_datasets = seqs
+            seq_datasets = seq_datasets[int(len(seq_datasets)*0.8):]
             seq_datasets = process_repeated_data(seq_datasets)
-            self.fasta_data = seq_datasets
-            self.hj_data = seq_datasets[1000:1100]
+            self.hj_data = seq_datasets
         else:
             self.hj_data = None
             raise

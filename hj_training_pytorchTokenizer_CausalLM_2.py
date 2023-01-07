@@ -16,11 +16,12 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 
 BLOCK_SIZE = 128
-BATCH_SIZE_LIST = [2]
+BATCH_SIZE_LIST = [4]
 DATASET_NAME = "hj"  # eli5 wikipedia hj
-DATA_NUM = 2  # None 1000
+DATA_NUM = None  # None 1000
 
-assert DATA_NUM >= min(BATCH_SIZE_LIST)
+if DATA_NUM is not None:
+    assert DATA_NUM >= min(BATCH_SIZE_LIST)
 
 
 def tokenize_function_eli5(examples):
@@ -109,9 +110,9 @@ def prepare_hj_dataset(batch_size):
     hj_dataset = HjDataset()
     hj_dataset_test = HjDataset(train_test_mode="test")
     hj_dataset.set_format("torch")
-    train_dataloader = DataLoader(hj_dataset, shuffle=True, batch_size=1)
+    train_dataloader = DataLoader(hj_dataset, shuffle=True, batch_size=batch_size)
 
-    eval_dataloader = DataLoader(hj_dataset_test, shuffle=True, batch_size=1)
+    eval_dataloader = DataLoader(hj_dataset_test, shuffle=True, batch_size=batch_size)
 
     # train_dataloader = train_dataloader_hj
     # eval_dataloader = eval_dataloader_hj
