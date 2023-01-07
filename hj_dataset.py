@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import os
 import re
 import time
+import random
 
 
 def tokenize_function_bert(examples):
@@ -134,7 +135,59 @@ def hj_group_text(data_tokenizer):
     return results
 
 
+def process_repeated_data(seq_datasets):
+    data_num = len(seq_datasets)
+    print("original data_num: ", data_num)
+    seq_datasets = list(set(seq_datasets))
+    random.shuffle(seq_datasets)
+    data_num = len(seq_datasets)
+    print("precessed data_num: ", data_num)
+    return seq_datasets
+
+
 class HjDataset(torch.utils.data.Dataset):
+    def process_batch_data(self, data_list):
+        data_space = [" ".join(x) for x in data_list]
+        model_name = "distilgpt2"  # bert-base-cased distilgpt2
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        data_tokenizer = tokenizer(data_space, truncation=True)
+
+        # results1 = hj_group_text(data_tokenizer)
+        results2 = data_tokenizer.data
+        new_input_ids = list()
+        new_attention_mask = list()
+        for i in range(len(results2['input_ids'])):
+            i_input = results2['input_ids'][i]
+            i_attention = results2['attention_mask'][i]
+            num = len(i_input) / 128
+            # print("num: ", num)
+            if num >= 1:
+                for j in range(int(num)):
+                    new_input = i_input[128*j:128*(j+1)]
+                    assert len(new_input) == 128
+                    new_input_ids.append(new_input)
+                    new_attention_mask.append(i_attention[128*j:128*(j+1)])
+                new_input = i_input[-129:-1]
+                if len(new_input) == 128:
+                    new_input_ids.append(new_input)
+                    new_attention_mask.append(i_attention[-129:-1])
+        results2['input_ids'] = new_input_ids
+        results2['attention_mask'] = new_attention_mask
+
+        data_data = results2
+
+        # data_data = data_tokenizer.data
+        if self.output_format == "list":
+            pass
+        elif self.output_format == "torch":
+            data_data['input_ids'] = torch.tensor(data_data['input_ids'])
+            data_data['attention_mask'] = torch.tensor(data_data['attention_mask'])
+        else:
+            raise
+        data_data['labels'] = data_data['input_ids']
+        data_final = data_data
+        return data_final
+
     def __init__(self, train_test_mode="train"):
         # self.hj_data = ["abcde", "12345", "xyzxy", "56789", "98765"]
         if train_test_mode == "train":
@@ -157,8 +210,9 @@ class HjDataset(torch.utils.data.Dataset):
                     data = fp.read()
                 tags, seqs = parse_fasta(data)
             seq_datasets = seqs
+            seq_datasets = process_repeated_data(seq_datasets)
             self.fasta_data = seq_datasets
-            self.hj_data = seq_datasets[0:10000]  # 1000:0.6s 10000:143s
+            self.hj_data = seq_datasets[0:1000]  # 1000:0.6s 10000:143s
 
         elif train_test_mode == "test":
             """
@@ -174,8 +228,9 @@ class HjDataset(torch.utils.data.Dataset):
                     data = fp.read()
                 tags, seqs = parse_fasta(data)
             seq_datasets = seqs
+            seq_datasets = process_repeated_data(seq_datasets)
             self.fasta_data = seq_datasets
-            self.hj_data = seq_datasets[10000:11000]
+            self.hj_data = seq_datasets[1000:1100]
         else:
             self.hj_data = None
             raise
@@ -212,33 +267,12 @@ class HjDataset(torch.utils.data.Dataset):
         data_final = data_data
         return data_final
 
-    def process_batch_data(self, data_list):
-        data_space = [" ".join(x) for x in data_list]
-        model_name = "distilgpt2"  # bert-base-cased distilgpt2
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        data_tokenizer = tokenizer(data_space, truncation=True)
-
-        results = hj_group_text(data_tokenizer)
-        data_data = results
-
-        # data_data = data_tokenizer.data
-        if self.output_format == "list":
-            pass
-        elif self.output_format == "torch":
-            data_data['input_ids'] = torch.tensor(data_data['input_ids'])
-            data_data['attention_mask'] = torch.tensor(data_data['attention_mask'])
-        else:
-            raise
-        data_data['labels'] = data_data['input_ids']
-        data_final = data_data
-        return data_final
-
     def __getitem__(self, item):
         # data_raw = self.hj_data[item]
         # data_final_1 = self.process_data(data_raw)
 
         data_final_2 = dict()
-        print("item: ", item)
+        # print("item: ", item)
         data_final_2["input_ids"] = self.processed_data["input_ids"][item]
         data_final_2["attention_mask"] = self.processed_data["attention_mask"][item]
         data_final_2["labels"] = self.processed_data["labels"][item]
