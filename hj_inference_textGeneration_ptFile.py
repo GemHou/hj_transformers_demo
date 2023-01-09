@@ -44,6 +44,10 @@ def prepare_task():
 
     prompt = "Today the weather is really nice and I am planning on "
 
+    full_prompt = "VILPNNDRHQITDTTNGHYAPVTYIQVEAPTGTFIASGVVVGKDTLLTNKHVVDATHGDPHALKAFPSAINQDNYPNGGFTAEQITKYSGEGDLAIVKFSPNEQNKHIGEVVKPATMSNNAETQTNQNITVTGYPGDKPVATMWESKGKITYLKGEAMQYDLSTTGGNSGSPVFNEKNEVIGIHWGGVPNEFNGAVFINENVRNFLKQNIEDINFANDDQPNNPDNPDNPNNPDNPNNPDNPNNPDEPNNPDNPNNPDNPDNGDNNNSDNPDAA"
+
+    prompt = full_prompt[:int(len(full_prompt)*0.4)]  # int(len(full_prompt)*0.3)
+
     return PADDING_TEXT, prompt
 
 
@@ -60,11 +64,17 @@ def main():
 
     prompt_length = len(tokenizer.decode(inputs[0]))
 
-    outputs = model.generate(inputs, max_length=250, do_sample=True, top_p=0.95, top_k=60)
+    print("forward... waiting...")
+    start_time = time.time()
+    outputs = model.generate(inputs, max_length=prompt_length-46+256, do_sample=True, top_p=0.95, top_k=60)  # max_length=250
+    print("forward time: ", time.time()-start_time)
     outputs = outputs[0]
     outputs = tokenizer.decode(outputs)
 
     generated = prompt + outputs[prompt_length + 1:]
+    print("prompt: ", prompt)
+    print("outputs: ", outputs[prompt_length + 1:])
+    print("outputs length:", len(outputs[prompt_length + 1:]))
 
     print("generated: ", generated)
 
