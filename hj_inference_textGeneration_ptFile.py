@@ -55,6 +55,38 @@ def prepare_task():
     return PADDING_TEXT, init_obs_acid, full_acid, true_acid
 
 
+def test_success_rate(PADDING_TEXT, init_obs_acid, model, tokenizer, true_acid):
+    obs_acid = init_obs_acid
+    success_num = 0
+    fail_num = 0
+    for true_letter in true_acid:
+        print("true_letter: ", true_letter)
+        inputs = tokenizer(PADDING_TEXT + obs_acid, add_special_tokens=False, return_tensors="pt")["input_ids"]
+        inputs_length = inputs[0].shape[0]
+        prompt_length = len(tokenizer.decode(inputs[0]))
+        outputs = model.generate(inputs, max_length=inputs_length + 1, do_sample=True, top_p=0.95, top_k=60)
+        outputs = outputs[0]
+        outputs = tokenizer.decode(outputs)
+        outputs_length = len(outputs)
+        print("outputs_length: ", outputs_length)
+        outputs_letter = outputs[prompt_length:]
+        if outputs_letter[0] == " ":
+            outputs_letter = outputs_letter[1]
+        else:
+            outputs_letter = outputs_letter[0]
+        assert outputs_letter != " "
+        print("outputs_letter: ", outputs_letter)
+        if outputs_letter == true_letter:
+            # print("success!")
+            success_num += 1
+        else:
+            # print("fail!")
+            fail_num += 1
+        obs_acid = obs_acid + true_letter
+    success_rate = success_num / (success_num + fail_num)
+    return success_rate
+
+
 def main():
     model_name = "distilgpt2"  # bert-base-cased-finetuned-mrpc
     tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -85,23 +117,8 @@ def main():
     print("outputs length:", int((len(outputs[prompt_length + 1:]) + 1) / 2))
     print("generated: ", generated)
 
-    obs_acid = init_obs_acid
-    for true_letter in true_acid:
-        print("true_letter: ", true_letter)
-        inputs = tokenizer(PADDING_TEXT + obs_acid, add_special_tokens=False, return_tensors="pt")["input_ids"]
-        inputs_length = inputs[0].shape[0]
-        prompt_length = len(tokenizer.decode(inputs[0]))
-        outputs = model.generate(inputs, max_length=inputs_length + 1, do_sample=True, top_p=0.95, top_k=60)
-        outputs = outputs[0]
-        outputs = tokenizer.decode(outputs)
-        outputs_letter = outputs[prompt_length + 1:]
-        assert len(outputs_letter) == 1
-        print("outputs_letter: ", outputs_letter)
-        if outputs_letter == true_letter:
-            print("success!")
-        else:
-            print("fail!")
-        obs_acid = obs_acid + outputs_letter
+    success_rate = test_success_rate(PADDING_TEXT, init_obs_acid, model, tokenizer, true_acid)
+    print("success_rate: ", success_rate)
     print("finished...")
 
 
