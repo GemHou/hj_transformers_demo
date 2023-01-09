@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
 # from hj_inference_textGeneration_tokenizer_CausalLM import prepare_task
 
-OUTPUT_LENGTH = 64
+OUTPUT_LENGTH = 8
 
 
 def prepare_task():
@@ -44,11 +44,15 @@ def prepare_task():
 
     prompt = "Today the weather is really nice and I am planning on "
 
-    full_prompt = "VILPNNDRHQITDTTNGHYAPVTYIQVEAPTGTFIASGVVVGKDTLLTNKHVVDATHGDPHALKAFPSAINQDNYPNGGFTAEQITKYSGEGDLAIVKFSPNEQNKHIGEVVKPATMSNNAETQTNQNITVTGYPGDKPVATMWESKGKITYLKGEAMQYDLSTTGGNSGSPVFNEKNEVIGIHWGGVPNEFNGAVFINENVRNFLKQNIEDINFANDDQPNNPDNPDNPNNPDNPNNPDNPNNPDEPNNPDNPNNPDNPDNGDNNNSDNPDAA"
+    full_acid = "VILPNNDRHQITDTTNGHYAPVTYIQVEAPTGTFIASGVVVGKDTLLTNKHVVDATHGDPHALKAFPSAINQDNYPNGGFTAEQITKYSGEGDLAIVKFSPNEQNKHIGEVVKPATMSNNAETQTNQNITVTGYPGDKPVATMWESKGKITYLKGEAMQYDLSTTGGNSGSPVFNEKNEVIGIHWGGVPNEFNGAVFINENVRNFLKQNIEDINFANDDQPNNPDNPDNPNNPDNPNNPDNPNNPDEPNNPDNPNNPDNPDNGDNNNSDNPDAA"
 
-    prompt = full_prompt[:int(len(full_prompt)*0.4)]  # int(len(full_prompt)*0.3)
+    init_obs_acid = full_acid[:int(len(full_acid)*0.3)]  # int(len(full_acid)*0.3)
 
-    return PADDING_TEXT, prompt
+    true_acid = full_acid[int(len(full_acid)*0.3):]
+
+    # print("true_acid: ", true_acid)
+
+    return PADDING_TEXT, init_obs_acid, full_acid, true_acid
 
 
 def main():
@@ -57,9 +61,9 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(model_name)  # bert-base-cased
     model.load_state_dict(torch.load("../para_temp.pt"))
 
-    PADDING_TEXT, prompt = prepare_task()
+    PADDING_TEXT, init_obs_acid, full_acid, true_acid = prepare_task()
 
-    inputs = tokenizer(PADDING_TEXT + prompt, add_special_tokens=False, return_tensors="pt")[
+    inputs = tokenizer(PADDING_TEXT + init_obs_acid, add_special_tokens=False, return_tensors="pt")[
         "input_ids"]  # PADDING_TEXT +
 
     inputs_length = inputs[0].shape[0]
@@ -74,13 +78,30 @@ def main():
 
     outputs = outputs[0]
     outputs = tokenizer.decode(outputs)
-    generated = prompt + outputs[prompt_length + 1:]
+    generated = init_obs_acid + outputs[prompt_length + 1:]
 
-    print("prompt: ", prompt)
+    print("prompt: ", init_obs_acid)
     print("outputs: ", outputs[prompt_length + 1:])
     print("outputs length:", int((len(outputs[prompt_length + 1:]) + 1) / 2))
     print("generated: ", generated)
 
+    obs_acid = init_obs_acid
+    for true_letter in true_acid:
+        print("true_letter: ", true_letter)
+        inputs = tokenizer(PADDING_TEXT + obs_acid, add_special_tokens=False, return_tensors="pt")["input_ids"]
+        inputs_length = inputs[0].shape[0]
+        prompt_length = len(tokenizer.decode(inputs[0]))
+        outputs = model.generate(inputs, max_length=inputs_length + 1, do_sample=True, top_p=0.95, top_k=60)
+        outputs = outputs[0]
+        outputs = tokenizer.decode(outputs)
+        outputs_letter = outputs[prompt_length + 1:]
+        assert len(outputs_letter) == 1
+        print("outputs_letter: ", outputs_letter)
+        if outputs_letter == true_letter:
+            print("success!")
+        else:
+            print("fail!")
+        obs_acid = obs_acid + outputs_letter
     print("finished...")
 
 
