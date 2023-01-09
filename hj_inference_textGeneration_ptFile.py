@@ -46,7 +46,7 @@ def prepare_task():
 
     full_prompt = "VILPNNDRHQITDTTNGHYAPVTYIQVEAPTGTFIASGVVVGKDTLLTNKHVVDATHGDPHALKAFPSAINQDNYPNGGFTAEQITKYSGEGDLAIVKFSPNEQNKHIGEVVKPATMSNNAETQTNQNITVTGYPGDKPVATMWESKGKITYLKGEAMQYDLSTTGGNSGSPVFNEKNEVIGIHWGGVPNEFNGAVFINENVRNFLKQNIEDINFANDDQPNNPDNPDNPNNPDNPNNPDNPNNPDEPNNPDNPNNPDNPDNGDNNNSDNPDAA"
 
-    prompt = full_prompt[:int(len(full_prompt)*0.4)]  # int(len(full_prompt)*0.3)
+    prompt = full_prompt[:int(len(full_prompt)*0.6)]  # int(len(full_prompt)*0.3)
 
     return PADDING_TEXT, prompt
 
@@ -62,11 +62,15 @@ def main():
     inputs = tokenizer(PADDING_TEXT + prompt, add_special_tokens=False, return_tensors="pt")[
         "input_ids"]  # PADDING_TEXT +
 
-    prompt_length = len(tokenizer.decode(inputs[0]))
+    temp1 = inputs[0]
+    temp2 = tokenizer.decode(temp1)
+    prompt_length = len(temp2)
+    print("prompt_length: ", prompt_length)
+    assert prompt_length > 64
 
     print("forward... waiting...")
     start_time = time.time()
-    outputs = model.generate(inputs, max_length=prompt_length-46+256, do_sample=True, top_p=0.95, top_k=60)  # max_length=250
+    outputs = model.generate(inputs, max_length=temp1.shape[0] + 8, do_sample=True, top_p=0.95, top_k=60)  # max_length=250
     print("forward time: ", time.time()-start_time)
     outputs = outputs[0]
     outputs = tokenizer.decode(outputs)
