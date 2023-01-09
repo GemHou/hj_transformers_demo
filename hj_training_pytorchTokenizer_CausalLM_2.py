@@ -164,6 +164,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
     model.train()
     last_time = time.time()
     for epoch in range(num_epochs):
+        # torch.nn.init.xavier_normal(model.transformer.weight)
         """"""
         for batch in train_dataloader:
             # batch.pop('attention_mask')  # attention_mask labels input_ids

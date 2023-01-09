@@ -2461,7 +2461,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                 )
                 raise
         elif from_pt:
-
+            """  # todo: do not load
             # restore default dtype
             if dtype_orig is not None:
                 torch.set_default_dtype(dtype_orig)
@@ -2490,6 +2490,8 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
                 load_in_8bit=load_in_8bit,
                 keep_in_fp32_modules=keep_in_fp32_modules,
             )
+            """
+            pass
 
         model.is_loaded_in_8bit = load_in_8bit
 
