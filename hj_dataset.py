@@ -214,7 +214,7 @@ class HjDataset(torch.utils.data.Dataset):
                     data = fp.read()
                 tags, seqs = parse_fasta(data)
             seq_datasets = seqs
-            seq_datasets = seq_datasets[:1000]
+            # seq_datasets = seq_datasets[:1000]
             seq_datasets = seq_datasets[:int(len(seq_datasets)*0.8)]
             seq_datasets = process_repeated_data(seq_datasets)
             self.hj_data = seq_datasets # 1000:0.6s 10000:143s
@@ -233,7 +233,7 @@ class HjDataset(torch.utils.data.Dataset):
                     data = fp.read()
                 tags, seqs = parse_fasta(data)
             seq_datasets = seqs
-            seq_datasets = seq_datasets[:1000]
+            # seq_datasets = seq_datasets[:1000]
             seq_datasets = seq_datasets[int(len(seq_datasets)*0.8):]
             seq_datasets = process_repeated_data(seq_datasets)
             self.hj_data = seq_datasets
