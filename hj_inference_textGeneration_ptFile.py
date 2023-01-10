@@ -59,12 +59,16 @@ def test_success_rate(PADDING_TEXT, init_obs_acid, model, tokenizer, true_acid):
     obs_acid = init_obs_acid
     success_num = 0
     fail_num = 0
+    progress_bar = tqdm(range(len(true_acid)))
     for true_letter in true_acid:
+        # progress_bar.update(1)
         # print("true_letter: ", true_letter)
         inputs = tokenizer(PADDING_TEXT + obs_acid, add_special_tokens=False, return_tensors="pt")["input_ids"]
         inputs_length = inputs[0].shape[0]
         prompt_length = len(tokenizer.decode(inputs[0]))
+        start_time = time.time()
         outputs = model.generate(inputs, attention_mask=torch.tensor([[1] * inputs.shape[1]]), max_length=inputs_length + 1, do_sample=True, top_p=0.95, top_k=60)
+        print("forward time: ", time.time()-start_time)
         outputs = outputs[0]
         outputs = tokenizer.decode(outputs)
         outputs_length = len(outputs)
