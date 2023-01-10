@@ -224,7 +224,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                 init_obs_acid = "".join(init_obs_acid)
                 true_acid = "".join(true_acid)
 
-                if train_global_step % 3500 == 1:
+                if train_global_step % 1000 == 1:
                     model.to("cpu")
                     success_rate = test_success_rate(init_obs_acid, model, tokenizer, true_acid)
                     model.to("cuda:0")
@@ -276,7 +276,7 @@ def main():
 
         optimizer = AdamW(model.parameters(), lr=2e-5)
 
-        num_epochs = 5
+        num_epochs = 20
         num_training_steps = num_epochs * len(train_dataloader)  # lm_dataset["train"]
         lr_scheduler = get_scheduler(name="linear", optimizer=optimizer, num_warmup_steps=0,
                                      num_training_steps=num_training_steps)
