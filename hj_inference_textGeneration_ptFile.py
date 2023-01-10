@@ -55,20 +55,20 @@ def prepare_task():
     return PADDING_TEXT, init_obs_acid, full_acid, true_acid
 
 
-def test_success_rate(PADDING_TEXT, init_obs_acid, model, tokenizer, true_acid):
+def test_success_rate(init_obs_acid, model, tokenizer, true_acid):
     obs_acid = init_obs_acid
     success_num = 0
     fail_num = 0
-    progress_bar = tqdm(range(len(true_acid)))
+    # progress_bar = tqdm(range(len(true_acid)))
     for true_letter in true_acid:
         # progress_bar.update(1)
         # print("true_letter: ", true_letter)
-        inputs = tokenizer(PADDING_TEXT + obs_acid, add_special_tokens=False, return_tensors="pt")["input_ids"]
+        inputs = tokenizer(obs_acid, add_special_tokens=False, return_tensors="pt")["input_ids"]  # PADDING_TEXT + obs_acid
         inputs_length = inputs[0].shape[0]
         prompt_length = len(tokenizer.decode(inputs[0]))
         start_time = time.time()
         outputs = model.generate(inputs, attention_mask=torch.tensor([[1] * inputs.shape[1]]), max_length=inputs_length + 1, do_sample=True, top_p=0.95, top_k=60)
-        print("forward time: ", time.time()-start_time)
+        # print("forward time: ", time.time()-start_time)
         outputs = outputs[0]
         outputs = tokenizer.decode(outputs)
         outputs_length = len(outputs)
@@ -99,7 +99,7 @@ def main():
 
     PADDING_TEXT, init_obs_acid, full_acid, true_acid = prepare_task()
 
-    inputs = tokenizer(PADDING_TEXT + init_obs_acid, add_special_tokens=False, return_tensors="pt")[
+    inputs = tokenizer(init_obs_acid, add_special_tokens=False, return_tensors="pt")[
         "input_ids"]  # PADDING_TEXT +
 
     inputs_length = inputs[0].shape[0]
@@ -124,7 +124,7 @@ def main():
     print("outputs length:", int((len(outputs[prompt_length + 1:]) + 1) / 2))
     print("generated: ", generated)
 
-    success_rate = test_success_rate(PADDING_TEXT, init_obs_acid, model, tokenizer, true_acid)
+    success_rate = test_success_rate(init_obs_acid, model, tokenizer, true_acid)
     print("success_rate: ", success_rate)
 
     print("finished...")

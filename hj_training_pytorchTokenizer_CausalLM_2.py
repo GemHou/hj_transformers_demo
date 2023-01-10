@@ -14,12 +14,13 @@ from torch.utils.data import DataLoader
 from torch.optim import AdamW
 from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm
+from hj_inference_textGeneration_ptFile import test_success_rate
 
 BLOCK_SIZE = 128
 BATCH_SIZE_LIST = [4]
 DATASET_NAME = "hj"  # eli5 wikipedia hj
 DATA_NUM = None  # None 1000
-LOAD_FLAG = True  # True False
+LOAD_FLAG = False  # True False
 
 if DATA_NUM is not None:
     assert DATA_NUM >= min(BATCH_SIZE_LIST)
@@ -164,6 +165,8 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
     train_global_step = 0
     model.train()
     last_time = time.time()
+    model_name = "distilgpt2"  # bert-base-cased-finetuned-mrpc
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
     for epoch in range(num_epochs):
         # torch.nn.init.xavier_normal(model.transformer.weight)
         """"""
@@ -193,7 +196,7 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
 
             """"""
 
-            if train_global_step % 1 == 0:
+            if train_global_step % 100 == 1:
 
                 model.eval()
                 # for batch in eval_dataloader:
@@ -214,10 +217,24 @@ def train_iter(device, lr_scheduler, model, num_epochs, optimizer,
                 writer.add_scalar('accuracy', accuracy, train_global_step)
                 """
 
-                model.train()
+                temp = tokenizer.decode(batch["input_ids"][0])
+                temp = temp.replace(" ", "")
+                init_obs_acid = temp[:int(len(temp)*0.3)]
+                true_acid = temp[int(len(temp)*0.3):]
+                init_obs_acid = "".join(init_obs_acid)
+                true_acid = "".join(true_acid)
+
+                if train_global_step % 3500 == 1:
+                    model.to("cpu")
+                    success_rate = test_success_rate(init_obs_acid, model, tokenizer, true_acid)
+                    model.to("cuda:0")
+
+                    writer.add_scalar('eval/success_rate', success_rate, train_global_step)
 
                 writer.add_scalar('others/batch_size', batch_size, train_global_step)
                 writer.add_scalar('others/batch_time', batch_time, train_global_step)
+
+                model.train()
 
             """"""
 
