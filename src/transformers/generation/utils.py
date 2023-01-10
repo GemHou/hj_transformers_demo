@@ -1154,9 +1154,9 @@ class GenerationMixin:
                     "The attention mask and the pad token id were not set. As a consequence, you may observe "
                     "unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results."
                 )
-            logger.warning(
-                f"Setting `pad_token_id` to `eos_token_id`:{generation_config.eos_token_id} for open-end generation."
-            )
+            # logger.warning(
+            #     f"Setting `pad_token_id` to `eos_token_id`:{generation_config.eos_token_id} for open-end generation."
+            # )
             generation_config.pad_token_id = generation_config.eos_token_id
 
         # 3. Define model inputs
