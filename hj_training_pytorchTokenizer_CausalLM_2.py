@@ -19,6 +19,7 @@ BLOCK_SIZE = 128
 BATCH_SIZE_LIST = [4]
 DATASET_NAME = "hj"  # eli5 wikipedia hj
 DATA_NUM = None  # None 1000
+LOAD_FLAG = True  # True False
 
 if DATA_NUM is not None:
     assert DATA_NUM >= min(BATCH_SIZE_LIST)
@@ -253,7 +254,8 @@ def main():
         lm_dataset, train_dataloader, eval_dataloader = prepare_dataset(batch_size)
 
         model = AutoModelForCausalLM.from_pretrained("distilgpt2")  # bert-base-cased
-        # model.load_state_dict(torch.load("../para_temp.pt"))
+        if LOAD_FLAG:
+            model.load_state_dict(torch.load("../para_temp.pt"))
 
         optimizer = AdamW(model.parameters(), lr=2e-5)
 
